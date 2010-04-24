@@ -204,7 +204,7 @@ If START or END is negative, it counts from the end."
                  ,@(cdr clause))
              (acond ,@(cdr clauses)))))))))
 
-(defmacro alamba (params &rest body)
+(defmacro alambda (params &rest body)
   (declare (indent 1)
            (debug lambda))
   `(labels ((caller ,params ,@body))
@@ -1447,7 +1447,7 @@ If START or END is negative, it counts from the end."
                              "define-macro-alias" "ik:fn-aux-appear_?"
                              "ik:fn-aux-anaph-arg-syms" "ik:fn-aux" "fn"
                              "ik:cond-let-aux-binds" "ik:cond-let-aux-clause"
-                             "ik:cond-let-aux-vars" "cond-let" "alamba" "acond"
+                             "ik:cond-let-aux-vars" "cond-let" "alambda" "acond"
                              "aand" "awhile" "awhen" "aif" "!remif" "remif"
                              "dirconcat" "with-lexical-bindings" "with-gensyms"
                              "ik:remove-if-not" "ik:remove-if"
@@ -1519,9 +1519,9 @@ If START or END is negative, it counts from the end."
             ((progn "cla1") (push it ret))
             (t (push "t" ret)))
           (car ret)))
-      (desc "alamba")
+      (desc "alambda")
       (expect 120
-        (let ((factor (alamba (lst)
+        (let ((factor (alambda (lst)
                         (cond
                          ((null lst) 1)
                          (t (* (car lst) (caller (cdr lst))))))))
