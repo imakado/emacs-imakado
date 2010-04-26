@@ -1203,23 +1203,23 @@ If START or END is negative, it counts from the end."
           with tokens
           for token = (ik:simple-template-parse-buffer-get-token-and-advance)
           while token
-          do (cond
-              ((string= tag-end token)
-               (setq state 'text
-                     multiline_expression nil))
-              ((string= tag-start token)
-               (setq state 'code))
-              ((string= tag-comment-start token)
-               (setq state 'comment))
-              ((string= expression-start token)
-               (setq state 'expr))
-              (t
-               (unless (eq state 'comment)
-                 (when multiline_expression
-                   (setq state 'code))
-                 (when (eq state 'expr)
-                   (setq multiline_expression t))
-                 (push (list state token) tokens))))
+          do (xcase= token
+               ((tag-end)
+                (setq state 'text
+                      multiline_expression nil))
+               ((tag-start)
+                (setq state 'code))
+               ((tag-comment-start)
+                (setq state 'comment))
+               ((expression-start)
+                (setq state 'expr))
+               (otherwise
+                (unless (eq state 'comment)
+                  (when multiline_expression
+                    (setq state 'code))
+                  (when (eq state 'expr)
+                    (setq multiline_expression t))
+                  (push (list state token) tokens))))
           finally return (nreverse tokens))))
 (dont-compile
   (when (fboundp 'expectations)
