@@ -1248,8 +1248,10 @@ If START or END is negative, it counts from the end."
     (condition-case err
         (read (current-buffer))
       (error
-       (error "ERROR occur during compiling template.\ntree: %S\ncompiled source: %S"
-              tree (buffer-substring-no-properties (point-min) (point-max)))))))
+       (error "\
+ERROR occur during compiling template.\ntree: %S\ncompiled source: %S\nerror-message: %s"
+              tree (buffer-substring-no-properties (point-min) (point-max))
+              (error-message-string err))))))
 (defsubst* ik:simple-template-buffer ()
   ;; this temp var name should be prefixed.
   ;; please see test -> (desc "Note, variable `ik:--form' is seen inside tmplate.")
@@ -1260,7 +1262,8 @@ If START or END is negative, it counts from the end."
           (progn (eval ik:--form)
                  (buffer-string))
         (error
-         (error "ERROR during eval.\ncompiled source: %S"
+         (error "ERROR during eval.\nerror-message: %s\ncompiled source: %S"
+                (error-message-string err)
                 ik:--form))))))
 
 (defmacro simple-template (file-or-list-of-file)
