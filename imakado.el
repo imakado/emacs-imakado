@@ -1,7 +1,4 @@
-;;; imakado.el - imakado's usefull macros and functions
-
-;; Author: IMAKADO <ken.imakado@gmail.com>
-;; Keywords: convenience
+;;; imakado.el --- imakado's usefull macros and functions
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -12,6 +9,15 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
+
+;; Description: imakado's usefull macros and functions
+;; Author: imakado <ken.imakado_at_gmail.com>
+;; Maintainer: imakado
+;; Copyright (C) 2014 imakado
+;; Created: :2014-10-23
+;; Version: 0.11
+;; Keywords: convenience
+;; URL: https://github.com/imakado/emacs-imakado
 
 ;; Prefix: i/
 
