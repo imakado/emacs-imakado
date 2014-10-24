@@ -15,7 +15,7 @@
 ;; Maintainer: imakado
 ;; Copyright (C) 2014 imakado
 ;; Created: :2014-10-23
-;; Version: 0.11
+;; Version: 0.12
 ;; Keywords: convenience
 ;; URL: https://github.com/imakado/emacs-imakado
 
