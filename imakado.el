@@ -19,7 +19,7 @@
 ;; Keywords: convenience
 ;; URL: https://github.com/imakado/emacs-imakado
 
-;; Prefix: i/
+;; Prefix: imakado-
 
 ;;; Commentary:
 
@@ -46,20 +46,20 @@ You have imakado.el %s at %s."
 (defalias 'imakado-el-require-version->= 'imakado-require-version)
 
 
-;;;; i/with-gensyms
+;;;; imakado-with-gensyms
 (eval-and-compile
-  (defvar i/gensym-prefix "--imakado--")
-  (defvar i/*gensym-counter* 0)
-  (defun i/gensym (&optional prefix)
+  (defvar imakado-gensym-prefix "--imakado--")
+  (defvar imakado-*gensym-counter* 0)
+  (defun imakado-gensym (&optional prefix)
     "Generate a new uninterned symbol.
 The name is made by appending a number to PREFIX, default \"G\"."
-    (let ((pfix (if (stringp prefix) prefix i/gensym-prefix))
+    (let ((pfix (if (stringp prefix) prefix imakado-gensym-prefix))
           (num (if (integerp prefix) prefix
-                 (prog1 i/*gensym-counter*
-                   (setq i/*gensym-counter* (1+ i/*gensym-counter*))))))
+                 (prog1 imakado-*gensym-counter*
+                   (setq imakado-*gensym-counter* (1+ imakado-*gensym-counter*))))))
       (make-symbol (format "%s%d" pfix num))))
   ;; slices
-  (defun* i/group (source n &key (error-check nil))
+  (defun* imakado-group (source n &key (error-check nil))
     (assert (not (zerop n)))
     (when error-check
       (assert (= (mod (length source) n) 0)))
@@ -72,21 +72,21 @@ The name is made by appending a number to PREFIX, default \"G\"."
                   (push (pop copied-source) ret)))
               res))
       (nreverse res)))
-  (defun i/allquote (args)
+  (defun imakado-allquote (args)
     (loop for arg in args
           collect `(quote ,arg)))
-  (defun* i/in-aux-test (v choises &key (test 'eq))
+  (defun* imakado-in-aux-test (v choises &key (test 'eq))
     (loop for c in choises
           collect `(,test ,v ,c)))
-  (defun i/flatten (list)
+  (defun imakado-flatten (list)
     "Flatten any lists within ARGS, so that there are no sublists."
     (loop for item in list
           if (listp item)
-          nconc (i/flatten item)
+          nconc (imakado-flatten item)
           else
           collect item))
   ;; copied from cl
-  (defun i/subseq (seq start &optional end)
+  (defun imakado-subseq (seq start &optional end)
     "Return the subsequence of SEQ from START to END.
 If END is omitted, it defaults to the length of the sequence.
 If START or END is negative, it counts from the end."
@@ -110,28 +110,28 @@ If START or END is negative, it counts from the end."
                    (aset res i (aref seq start))
                    (setq i (1+ i) start (1+ start)))
                  res))))))
-  (defun* i/remove-if (pred seq &key (key 'identity))
+  (defun* imakado-remove-if (pred seq &key (key 'identity))
     (loop for elem in seq
           unless (funcall pred (funcall key elem))
           collect elem))
-  (defun* i/remove-if-not (pred seq &key (key 'identity))
+  (defun* imakado-remove-if-not (pred seq &key (key 'identity))
     (loop for elem in seq
           when (funcall pred (funcall key elem))
           collect elem))
-  (defsubst i/acdr (key alist)
+  (defsubst imakado-acdr (key alist)
     (cdr (assq key alist)))
   ) ;; eval-and-compile
 
-(defmacro i/with-gensyms (syms &rest body)
+(defmacro imakado-with-gensyms (syms &rest body)
   (declare (indent 1)
            (debug ((&rest symbolp)
                    body)))
   (let ((clauses (loop for sym in syms
-                      collect `( ,sym  ',(i/gensym i/gensym-prefix) ))))
+                      collect `( ,sym  ',(imakado-gensym imakado-gensym-prefix) ))))
     `(let ( ,@clauses )
        ,@body)))
 
-(defmacro i/with-lexical-bindings (syms &rest body)
+(defmacro imakado-with-lexical-bindings (syms &rest body)
   (declare (indent 1)
            (debug ((&rest symbolp)
                    body)))
@@ -140,10 +140,10 @@ If START or END is negative, it counts from the end."
     `(lexical-let ( ,@clauses )
        ,@body)))
 
-;;;; i/dirconcat
-(defmacro i/dirconcat (d1 str)
+;;;; imakado-dirconcat
+(defmacro imakado-dirconcat (d1 str)
   (declare (debug (form form)))
-  (i/with-gensyms (d1-tmp str-temp)
+  (imakado-with-gensyms (d1-tmp str-temp)
     `(let* ((,d1-tmp ,d1)
             (,d1-tmp (if (file-directory-p ,d1-tmp)
                          (file-name-as-directory ,d1-tmp)
@@ -151,19 +151,19 @@ If START or END is negative, it counts from the end."
             (,str-temp ,str))
        (concat ,d1-tmp ,str))))
 
-(defmacro* i/in-directory (directory &rest body)
+(defmacro* imakado-in-directory (directory &rest body)
   (declare (debug (form body))
            (indent 1))
-  (let ((before-directory (i/gensym)))
+  (let ((before-directory (imakado-gensym)))
     `(let ((,before-directory default-directory)
            (default-directory ,directory))
        (cd ,directory)
        ,@body
        (cd ,before-directory))))
 
-;;;; i/remif
-(defsubst i/remif-aux (pred seq key cond)
-  (i/with-gensyms (g-pred g-seq g-key g-elem)
+;;;; imakado-remif
+(defsubst imakado-remif-aux (pred seq key cond)
+  (imakado-with-gensyms (g-pred g-seq g-key g-elem)
     `(let ((,g-pred ,pred)
            (,g-seq ,seq)
            (,g-key ,key)
@@ -171,285 +171,293 @@ If START or END is negative, it counts from the end."
        (loop for ,g-elem in ,g-seq
              ,cond (funcall ,g-pred (funcall ,g-key ,g-elem))
              collect ,g-elem))))
-(defmacro* i/remif (pred seq &key (key (quote 'identity)))
+(defmacro* imakado-remif (pred seq &key (key (quote 'identity)))
   (declare (debug (form form &rest [":key" function-form])))
-  (i/remif-aux pred seq key 'unless))
+  (imakado-remif-aux pred seq key 'unless))
 
-(defmacro* i/!remif (pred seq &key (key (quote 'identity)))
+(defmacro* imakado-!remif (pred seq &key (key (quote 'identity)))
   (declare (debug (form form &rest [":key" function-form])))
-  (i/remif-aux pred seq key 'when))
+  (imakado-remif-aux pred seq key 'when))
 
 
 ;;;; Special
 ;; almost copied from anything.el
-(defmacro i/aif (test-form then-form &rest else-forms)
+(defmacro imakado-aif (test-form then-form &rest else-forms)
   (declare (indent 2)
            (debug (form form &rest form)))
   "Anaphoric if. Temporary variable `it' is the result of test-form."
   `(let ((it ,test-form))
      (if it ,then-form ,@else-forms)))
 
-(defmacro i/awhen (test-form &rest body)
+(defmacro imakado-awhen (test-form &rest body)
   (declare (indent 1)
            (debug (form body)))
-  `(i/aif ,test-form
+  `(imakado-aif ,test-form
        (progn ,@body)))
 
-(defmacro i/awhile (expr &rest body)
+(defmacro imakado-awhile (expr &rest body)
   (declare (indent 1)
            (debug (form body)))
   `(do ((it ,expr ,expr))
        ((not it))
      ,@body))
 
-(defmacro i/aand (&rest args)
+(defmacro imakado-aand (&rest args)
   (declare (debug (&rest form)))
   (cond
    ((null (car args)) t)
    ((null (cdr args)) (car args))
-   (t `(i/aif ,(car args) (i/aand ,@(cdr args))))))
+   (t `(imakado-aif ,(car args) (imakado-aand ,@(cdr args))))))
 
-(defmacro i/acond (&rest clauses)
+(defmacro aand (&rest args)
+  (declare (debug (&rest form)))
+  (cond
+   ((null (car args)) t)
+   ((null (cdr args)) (car args))
+   (t `(imakado-aif ,(car args) (imakado-aand ,@(cdr args))))))
+
+
+(defmacro imakado-acond (&rest clauses)
   (declare (indent 0)
            (debug cond))
   (cond
    ((null clauses) nil)
    (t
-    (i/with-gensyms (test)
+    (imakado-with-gensyms (test)
       (let ((clause (car clauses)))
         `(let ((,test ,(car clause)))
            (if ,test
                (let ((it ,test))
                  ,@(cdr clause))
-             (i/acond ,@(cdr clauses)))))))))
+             (imakado-acond ,@(cdr clauses)))))))))
 
-(defmacro i/alambda (params &rest body)
+(defmacro imakado-alambda (params &rest body)
   (declare (indent 1)
            (debug lambda))
   `(labels ((caller ,params ,@body))
      'caller))
 
-;;;; i/cond-let
-(defsubst i/cond-let-aux-vars (clauses)
+;;;; imakado-cond-let
+(defsubst imakado-cond-let-aux-vars (clauses)
   (let ((vars (delete-dups
                (loop for cla in clauses
                      append (mapcar 'car (cdr cla))))))
     (loop for var in vars
-          collect (cons var (i/gensym i/gensym-prefix)))))
-(defsubst i/cond-let-aux-binds (vars cla)
+          collect (cons var (imakado-gensym imakado-gensym-prefix)))))
+(defsubst imakado-cond-let-aux-binds (vars cla)
   (loop for bindform in (cdr cla)
         for (bind-var . bind-body) = bindform
         when (consp bindform)
         collect `( ,(assoc-default bind-var vars) . ,bind-body)))
-(defsubst i/cond-let-aux-clause (vars cla body-fn)
+(defsubst imakado-cond-let-aux-clause (vars cla body-fn)
   `( ,(car cla)  (let ,(mapcar 'cdr vars)
-                   (let ,(i/cond-let-aux-binds vars cla)
+                   (let ,(imakado-cond-let-aux-binds vars cla)
                      (,body-fn ,@(mapcar 'cdr vars))))))
 
-(defmacro i/cond-let (clauses &rest body)
+(defmacro imakado-cond-let (clauses &rest body)
   (declare (indent 1)
            (debug ((&rest (form &rest (symbolp body))) body)))
-  (i/with-gensyms (body-fn)
-    (let ((vars (i/cond-let-aux-vars clauses)))
+  (imakado-with-gensyms (body-fn)
+    (let ((vars (imakado-cond-let-aux-vars clauses)))
       `(labels ((,body-fn ,(mapcar 'car vars)
                           ,@body))
          (cond
           ,@(loop for cla in clauses
-                  collect (i/cond-let-aux-clause vars cla body-fn)))))))
+                  collect (imakado-cond-let-aux-clause vars cla body-fn)))))))
 
-;;;; i/when-let
+;;;; imakado-when-let
 ;; the code is taken from slime.el
-(defmacro* i/when-let ((var value) &rest body)
+(defmacro* imakado-when-let ((var value) &rest body)
   "Evaluate VALUE, if the result is non-nil bind it to VAR and eval BODY."
   (declare (indent 1)
            (debug ((symbolp form) body)))
   `(let ((,var ,value))
      (when ,var ,@body)))
 
-;;;; i/fn
+;;;; imakado-fn
 (eval-when-compile
-  (defvar i/fn-aux-anaph-arg-map
+  (defvar imakado-fn-aux-anaph-arg-map
     (loop for n from 1 to 20
           for sym = (intern (format "_%s" n))
           collect `( ,sym . ,n))))
-(defsubst i/fn-aux-anaph-arg-syms (flatten fn-args-arg fn-args-rest)
+(defsubst imakado-fn-aux-anaph-arg-syms (flatten fn-args-arg fn-args-rest)
   (and (not (equal fn-args-arg '(_)))
        (let ((anaph-arg-syms (mapcar 'car (eval-when-compile
-                                            i/fn-aux-anaph-arg-map))))
-         (i/remove-if-not (lambda (atom)
+                                            imakado-fn-aux-anaph-arg-map))))
+         (imakado-remove-if-not (lambda (atom)
                              (memq atom anaph-arg-syms))
                            flatten))))
-(defsubst i/fn-aux-appear_? (flatten fn-args-arg fn-args-rest)
+(defsubst imakado-fn-aux-appear_? (flatten fn-args-arg fn-args-rest)
   (and (not (equal fn-args-arg '(_)))
-       ;; (i/fn (_ b) (list b))
+       ;; (imakado-fn (_ b) (list b))
        (or (and (null fn-args-rest)
-                (memq '_ (i/flatten fn-args-arg)))
+                (memq '_ (imakado-flatten fn-args-arg)))
            (and fn-args-rest
                 (not (remove '_ fn-args-arg))))
        (memq  '_ flatten)))
-(defsubst i/fn-aux (fn-args)
-  (let ((flatten (i/flatten fn-args))
+(defsubst imakado-fn-aux (fn-args)
+  (let ((flatten (imakado-flatten fn-args))
         (fn-args-arg (car fn-args))
         (fn-args-rest (cdr fn-args)))
-    (i/acond
-      ((i/fn-aux-anaph-arg-syms flatten fn-args-arg fn-args-rest)
+    (imakado-acond
+      ((imakado-fn-aux-anaph-arg-syms flatten fn-args-arg fn-args-rest)
        (assert (not (memq '_ flatten))
                nil
                "cant use \"_\" and \"(_1 _2 ...)\" at the same time!!")
        (let* ((arg-count (apply 'max
                                 (loop for sym in it
                                       collect (assoc-default sym (eval-when-compile
-                                                                   i/fn-aux-anaph-arg-map)))))
-              (lambda-args (mapcar 'car (i/subseq (eval-when-compile i/fn-aux-anaph-arg-map) 0 arg-count))))
+                                                                   imakado-fn-aux-anaph-arg-map)))))
+              (lambda-args (mapcar 'car (imakado-subseq (eval-when-compile imakado-fn-aux-anaph-arg-map) 0 arg-count))))
          `(lambda ,lambda-args
             (let ((_0 (list ,@lambda-args)))
               ,@fn-args))))
-      ((i/fn-aux-appear_? flatten fn-args-arg fn-args-rest)
+      ((imakado-fn-aux-appear_? flatten fn-args-arg fn-args-rest)
        `(lambda (_) ,@fn-args))
       (t
        `(lambda ,@fn-args)))))
-(defmacro i/fn (&rest args)
+(defmacro imakado-fn (&rest args)
   (declare (indent defun)
            (debug (&or [&define lambda-list
                                 [&optional stringp]
                                 [&optional ("interactive" interactive)]
                                 def-body]
                        body)))
-  `,(i/fn-aux args))
+  `,(imakado-fn-aux args))
 
 
 ;;;; Macro aliases
 (eval-and-compile
-(defmacro i/define-macro-alias (short long)
+(defmacro imakado-define-macro-alias (short long)
   `(defmacro ,short (&rest args)
-     (declare ,(i/awhen (and (fboundp long)
+     (declare ,(imakado-awhen (and (fboundp long)
                            (get long 'lisp-indent-function))
                  `(indent ,it))
-              ,(i/awhen (and (fboundp long)
+              ,(imakado-awhen (and (fboundp long)
                            (get long 'edebug-form-spec))
                  `(debug ,it)))
      ,(documentation long)
      `(,',long ,@args)))
 
-(defmacro i/define-macro-aliases (&rest args)
+(defmacro imakado-define-macro-aliases (&rest args)
   `(progn
-     ,@(loop for (short long) in (i/group args 2 :error-check t)
-             collect `(i/define-macro-alias ,short ,long))))
+     ,@(loop for (short long) in (imakado-group args 2 :error-check t)
+             collect `(imakado-define-macro-alias ,short ,long))))
 )
 
 ;;;; define abbrevs
-(i/define-macro-aliases
-  dbind destructuring-bind
-  mvbind multiple-value-bind
-  mvsetq multiple-value-setq
-  )
-(i/define-macro-aliases
-  i/dbind destructuring-bind
-  i/mvbind multiple-value-bind
-  i/mvsetq multiple-value-setq
+;; (imakado-define-macro-aliases
+;;   imakado-dbind destructuring-bind
+;;   mvbind multiple-value-bind
+;;   mvsetq multiple-value-setq
+;;   )
+(imakado-define-macro-aliases
+  imakado-dbind destructuring-bind
+  imakado-mvbind multiple-value-bind
+  imakado-mvsetq multiple-value-setq
   )
 
 ;;; destructuring-bind's edebug-spec has broken.
 ;;; so fix it.
-(def-edebug-spec dbind
+(def-edebug-spec imakado-dbind
   (loop-var form body))
 
 
 ;;;; List
 
-(defmacro i/cars (seq)
+(defmacro imakado-cars (seq)
   (declare (debug (form)))
   `(mapcar 'car ,seq))
 
-(defmacro i/cdrs (seq)
+(defmacro imakado-cdrs (seq)
   (declare (debug (form)))
   `(mapcar 'cdr ,seq))
 
-(defmacro i/cadrs (seq)
+(defmacro imakado-cadrs (seq)
   (declare (debug (form)))
   `(mapcar 'cadr ,seq))
 
-(defmacro i/assoc-cdrs (keys alist &optional test default)
+(defmacro imakado-assoc-cdrs (keys alist &optional test default)
   (declare (debug (form form)))
-  `(mapcar (i/fn (assoc-default _ ,alist ,test ,default)) ,keys))
+  `(mapcar (imakado-fn (assoc-default _ ,alist ,test ,default)) ,keys))
 
-(defmacro i/nths (n seq)
+(defmacro imakado-nths (n seq)
   (declare (debug (form form)))
-  `(mapcar (i/fn (nth ,n _)) ,seq))
+  `(mapcar (imakado-fn (nth ,n _)) ,seq))
 
-(defmacro i/in (obj  &rest choises)
+(defmacro imakado-in (obj  &rest choises)
   (declare (indent 1)
            (debug (form &rest form)))
-  (i/with-gensyms (insym)
+  (imakado-with-gensyms (insym)
     `(let ((,insym ,obj))
-       (or ,@(i/in-aux-test insym choises)))))
+       (or ,@(imakado-in-aux-test insym choises)))))
 
-(defmacro i/inq (obj &rest args)
+(defmacro imakado-inq (obj &rest args)
   (declare (indent 1)
            (debug (form &rest symbolp)))
-  `(i/in ,obj ,@(i/allquote args)))
+  `(imakado-in ,obj ,@(imakado-allquote args)))
 
-(defmacro i/in= (obj &rest choises)
+(defmacro imakado-in= (obj &rest choises)
   (declare (indent 1)
-           (debug i/in))
-  (i/with-gensyms (inobj)
+           (debug imakado-in))
+  (imakado-with-gensyms (inobj)
     `(let ((,inobj ,obj))
-       (or ,@(i/in-aux-test inobj choises
+       (or ,@(imakado-in-aux-test inobj choises
                              :test 'equal)))))
 
-(defmacro* i/join+ (seq &optional (separator "\n"))
+(defmacro* imakado-join+ (seq &optional (separator "\n"))
   (declare (debug (form &optional form)))
   `(mapconcat 'identity ,seq ,separator))
 
 
 ;;; Case
-(defsubst* i/case-cond-clause-aux (v cla &optional (test 'i/in))
-  (dbind (key . body) cla
+(defsubst* imakado-case-cond-clause-aux (v cla &optional (test 'imakado-in))
+  (imakado-dbind (key . body) cla
     (cond
      ((consp key) `((,test ,v ,@key) ,@body))
-     ((i/inq key t otherwise) `(t ,@body))
+     ((imakado-inq key t otherwise) `(t ,@body))
      (t (error "bad clause")))))
-(defmacro i/xcase (expr &rest clauses)
+(defmacro imakado-xcase (expr &rest clauses)
   (declare (indent 1)
            (debug case))
-  (i/with-gensyms (v)
+  (imakado-with-gensyms (v)
     `(let ((,v ,expr))
        (cond
         ,@(loop for cla in clauses
-                collect (i/case-cond-clause-aux v cla))))))
+                collect (imakado-case-cond-clause-aux v cla))))))
 
-;;;; i/xcase=
-(defsubst* i/xcase-clause-aux-test (v keys body &key test)
+;;;; imakado-xcase=
+(defsubst* imakado-xcase-clause-aux-test (v keys body &key test)
   `((or ,@(loop for key in keys
                 collect `(,test ,key ,v)))
     ,@body))
-(defsubst* i/xcase-clause-aux (v cla &key (test 'equal))
-  (dbind (key . body) cla
+(defsubst* imakado-xcase-clause-aux (v cla &key (test 'equal))
+  (imakado-dbind (key . body) cla
     (cond
-     ((consp key) `,@(i/xcase-clause-aux-test v key body
+     ((consp key) `,@(imakado-xcase-clause-aux-test v key body
                                                :test test))
-     ((i/inq key t otherwise) `(t ,@body))
+     ((imakado-inq key t otherwise) `(t ,@body))
      (t (error "bad clause")))))
-(defmacro i/xcase= (expr &rest clauses)
+(defmacro imakado-xcase= (expr &rest clauses)
   (declare (indent 1)
            (debug (form &rest ((&rest form) body))))
-  (i/with-gensyms (g-expr)
+  (imakado-with-gensyms (g-expr)
     `(let ((,g-expr ,expr))
        (cond
         ,@(loop for cla in clauses
-                collect (i/xcase-clause-aux g-expr cla))))))
+                collect (imakado-xcase-clause-aux g-expr cla))))))
 
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/xcase= +++++")
+      (desc "+++++ imakado-xcase= +++++")
       (expect '(OPEN "aaa" CLOSE)
         (let ((tokens '("[" "aaa" "]"))
               (tag1 "[")
               (tag2 "]"))
           (loop for token in tokens
                 collect
-                (i/xcase= token
+                (imakado-xcase= token
                   ((tag1) 'OPEN)
                   ((tag2) 'CLOSE)
                   (otherwise
@@ -461,19 +469,19 @@ If START or END is negative, it counts from the end."
               (case-fold-search t))
           (loop for token in tokens
                 collect
-                (i/xcase= token
+                (imakado-xcase= token
                   (("a") 'token-a)
                   (("b") 'token-b)
                   (otherwise 'otherwise)))))
 
       (desc "key must be consed")
       (expect (error)
-        (i/xcase= "a"
+        (imakado-xcase= "a"
           ("a" 'a)))
 
       (desc "this is ok")
       (expect 'a
-        (i/xcase= "a"
+        (imakado-xcase= "a"
           (("a") 'a)))
 
       (desc "multi key")
@@ -485,7 +493,7 @@ If START or END is negative, it counts from the end."
               (closeb "]"))
           (loop for token in tokens
                 collect
-                (i/xcase= token
+                (imakado-xcase= token
                   ((open openb) 'OPEN)
                   ((close closeb) 'CLOSE)
                   (otherwise
@@ -496,7 +504,7 @@ If START or END is negative, it counts from the end."
         (let ((tokens '(nil a nil b)))
           (loop for token in tokens
                 collect
-                (i/xcase= token
+                (imakado-xcase= token
                   ((nil) "nil")
                   (otherwise
                    "otherwise")))))
@@ -505,14 +513,14 @@ If START or END is negative, it counts from the end."
 
 ;;;; Struct
 ;; copied from slime.el
-(defmacro* i/with-struct ((conc-name &rest slots) struct &body body)
+(defmacro* imakado-with-struct ((conc-name &rest slots) struct &body body)
   "Like with-slots but works only for structs.
-\(i/fn (CONC-NAME &rest SLOTS) STRUCT &body BODY)"
+\(imakado-fn (CONC-NAME &rest SLOTS) STRUCT &body BODY)"
   (declare (indent 2)
            (debug ((symbolp &rest symbolp) form body)))
   (flet ((reader (slot) (intern (concat (symbol-name conc-name)
                                         (symbol-name slot)))))
-    (let ((struct-var (i/gensym "i/with-struct")))
+    (let ((struct-var (imakado-gensym "imakado-with-struct")))
       `(let ((,struct-var ,struct))
          (symbol-macrolet
              ,(mapcar (lambda (slot)
@@ -523,36 +531,36 @@ If START or END is negative, it counts from the end."
                       slots)
            . ,body)))))
 
-(defmacro* i/define-with-struct-macro (name conc-name)
+(defmacro* imakado-define-with-struct-macro (name conc-name)
   `(defmacro* ,name ( slots struct &rest body)
      (declare (indent 2)
               (debug ((&rest symbolp) form body)))
-     `(i/with-struct (,',conc-name ,@slots) ,struct ,@body)))
+     `(imakado-with-struct (,',conc-name ,@slots) ,struct ,@body)))
 
-(defsubst i/with-struct-all-slots-get-getters-slot? (sym)
+(defsubst imakado-with-struct-all-slots-get-getters-slot? (sym)
   (let ((plist (symbol-plist sym)))
     (and (memq 'cl-compiler-macro plist)
          (memq 'setf-method plist))))
-(defsubst i/with-struct-all-slots-get-all-slots (prefix)
+(defsubst imakado-with-struct-all-slots-get-all-slots (prefix)
   (loop for s in (all-completions prefix obarray)
         for sym = (intern s)
-        when (i/with-struct-all-slots-get-getters-slot? sym)
+        when (imakado-with-struct-all-slots-get-getters-slot? sym)
         collect (let ((slotname (replace-regexp-in-string (concat "^" prefix)
                                                           ""
                                                           s)))
                   (intern slotname))))
-(defmacro i/define-with-all-slots-struct (name conc-name)
+(defmacro imakado-define-with-all-slots-struct (name conc-name)
   `(defmacro ,name (struct &rest body)
      (declare (indent 1)
               (debug (form body)))
-     (let ((i/slots ',(i/with-struct-all-slots-get-all-slots (symbol-name conc-name))))
-       `(i/with-struct (,',conc-name ,@i/slots) ,struct ,@body))))
+     (let ((imakado-slots ',(imakado-with-struct-all-slots-get-all-slots (symbol-name conc-name))))
+       `(imakado-with-struct (,',conc-name ,@imakado-slots) ,struct ,@body))))
 
 ;;;; Progress Reporter
-(defmacro i/dolist-with-progress-reporter (spec message min-change min-time &rest body)
+(defmacro imakado-dolist-with-progress-reporter (spec message min-change min-time &rest body)
   (declare (indent 4)
            (debug ((symbolp form &optional form) form form form body)))
-  (i/with-gensyms (seq seq-length reporter loop-temp)
+  (imakado-with-gensyms (seq seq-length reporter loop-temp)
     `(let* ((,seq ,(nth 1 spec))
             (,seq-length (length ,seq))
             (,reporter (make-progress-reporter ,message 0 (length ,seq) nil ,min-change ,min-time)))
@@ -566,10 +574,10 @@ If START or END is negative, it counts from the end."
 
 ;;;; Regexp
 ;; idea from rails-lib.el
-(defmacro i/with-anaphoric-match-utilities (string-used-match &rest body)
+(defmacro imakado-with-anaphoric-match-utilities (string-used-match &rest body)
   (declare (indent 1)
            (debug (form body)))
-  (i/with-gensyms (str)
+  (imakado-with-gensyms (str)
     `(lexical-let ((,str ,string-used-match))
        (symbol-macrolet (
                          ,@(loop for i to 9 append
@@ -585,9 +593,9 @@ If START or END is negative, it counts from the end."
                       (replace-match replacement fixedcase literal-string ,str i)) ;body
                 ($gsub (replacement &optional (i 0) &key fixedcase literal-string start)
                        (with-no-warnings
-                         ;; see `i/=~'
-                         (assert (boundp 'i/--regexp-used-by-=~))
-                         (replace-regexp-in-string i/--regexp-used-by-=~
+                         ;; see `imakado-=~'
+                         (assert (boundp 'imakado---regexp-used-by-=~))
+                         (replace-regexp-in-string imakado---regexp-used-by-=~
                                                    replacement
                                                    ,str
                                                    fixedcase
@@ -595,26 +603,26 @@ If START or END is negative, it counts from the end."
                                                    i
                                                    start))))
            (symbol-macrolet ( ;;before
-                             ,(i/awhen str
+                             ,(imakado-awhen str
                                 `($b (substring ,it 0 (match-beginning 0))))
                              ;;match
                              ($m (match-string 0 ,str))
                              ($M (match-string-no-properties 0 ,str))
                              ;;after
-                             ,(i/awhen str
+                             ,(imakado-awhen str
                                 `($a (substring ,it (match-end 0) (length ,str))))
                              )
              ,@body))))))
 
-(defmacro i/=~ (regexp string &rest body)
+(defmacro imakado-=~ (regexp string &rest body)
   (declare (indent 2)
            (debug (form form body)))
-  "regexp matching similar to the i/=~ operator found in other languages."
-  (i/with-gensyms (str)
+  "regexp matching similar to the imakado-=~ operator found in other languages."
+  (imakado-with-gensyms (str)
     `(let ((,str ,string)
-           (i/--regexp-used-by-=~ ,regexp))
+           (imakado---regexp-used-by-=~ ,regexp))
        (when (string-match ,regexp ,str)
-         (i/with-anaphoric-match-utilities ,str
+         (imakado-with-anaphoric-match-utilities ,str
            ,@(if body body '(t)))))))
 
 (dont-compile
@@ -626,30 +634,30 @@ If START or END is negative, it counts from the end."
              (imakado-require-version 0.01)))
 
       (expect "huga"
-        (i/with-point-buffer "\
+        (imakado-with-point-buffer "\
 hoge-huga-foo
 "
           (when (re-search-forward (rx "-"(group (+ not-newline)) "-") nil t)
-            (i/with-anaphoric-match-utilities nil
+            (imakado-with-anaphoric-match-utilities nil
               (buffer-substring $MB-1
                                 $ME-1)))))
           
 
-      (desc "+++++ i/=~ +++++")
+      (desc "+++++ imakado-=~ +++++")
       (desc "If match, return last expr")
       (expect 'b
-        (i/=~ ".*" "re" 'a 'b))
+        (imakado-=~ ".*" "re" 'a 'b))
       (expect nil
-        (i/=~ ".*" "re" 'a nil))
+        (imakado-=~ ".*" "re" 'a nil))
       (expect t
-        (i/=~ ".*" "re"))
+        (imakado-=~ ".*" "re"))
       (desc "If fail, return nil")
       (expect nil
-        (i/=~ "never match regexp" "string"))
+        (imakado-=~ "never match regexp" "string"))
       (expect nil
-        (i/=~ "never match regexp" "string" 'body))
+        (imakado-=~ "never match regexp" "string" 'body))
 
-      (desc "i/with-anaphoric-match-utilities")
+      (desc "imakado-with-anaphoric-match-utilities")
       (desc "$1 $2 ...")
       (expect '("Dog" "Alice")
         (let ((re (concat
@@ -660,7 +668,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             (list $1 $2))))
       (desc "($ 1) ($ 2) ...")
       (expect '("Dog" "Alice")
@@ -672,7 +680,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             (list ($ 1) ($ 2)))))
       (desc "$b, $m, $a")
       (expect '("---- " "Dog looking at tiny Alice." " ----")
@@ -684,7 +692,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             (list $b
                   $m
                   $a))))
@@ -698,7 +706,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             ($sub "gone"))))
       (desc "\\&")
       (expect "---- Dog looking at tiny Alice. ----"
@@ -710,7 +718,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             ($sub "\\&"))))
       (desc "\\N")
       (expect "---- Dog Alice ----"
@@ -722,7 +730,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             ($sub "\\1 \\2"))))
       (desc ":literal")
       (expect "---- \\1 \\2 ----"
@@ -734,7 +742,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             ($sub "\\1 \\2" 0 :literal-string t))))
       (expect (error)
         (let ((re (concat
@@ -745,7 +753,7 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (imakado-=~ re "---- Dog looking at tiny Alice. ----"
             ;; missing subexp arg.
             ($sub "\\1 \\2" :literal-string t))))
 
@@ -759,10 +767,10 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (let ((newstr (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (let ((newstr (imakado-=~ re "---- Dog looking at tiny Alice. ----"
                           ($sub "elise" 2)))
                 (case-fold-search nil)) ; case-sensitive
-            (i/=~ "Elise" newstr))))
+            (imakado-=~ "Elise" newstr))))
       (desc "($sub subexp :fixedcase t)")
       (expect nil
         (let ((re (concat
@@ -773,62 +781,62 @@ hoge-huga-foo
                    "\\(" "Alice" "\\)"  ;2
                    "\\."
                    )))
-          (let ((newstr (i/=~ re "---- Dog looking at tiny Alice. ----"
+          (let ((newstr (imakado-=~ re "---- Dog looking at tiny Alice. ----"
                           ($sub "elise" 2
                                 :fixedcase t)))
                 (case-fold-search nil)) ; case-sensitive
-            (i/=~ "Elise" newstr))))
+            (imakado-=~ "Elise" newstr))))
       (desc "($gsub subexp)")
       (expect t
-        (let ((newstr (i/=~ "/" "a/b/c"
+        (let ((newstr (imakado-=~ "/" "a/b/c"
                         ($gsub "::")))
               (case-fold-search nil)) ; case-sensitive
-          (i/=~ "a::b::c" newstr)))
+          (imakado-=~ "a::b::c" newstr)))
       )))
 
-;;; i/case-regexp
-(defsubst i/case-regexp-aux (expr-sym clauses)
+;;; imakado-case-regexp
+(defsubst imakado-case-regexp-aux (expr-sym clauses)
   (loop for (regexp-or-sym . body) in clauses
         for body = (or body '(nil))
         collect
         (cond
-         ((i/inq regexp-or-sym t otherwise)
+         ((imakado-inq regexp-or-sym t otherwise)
           `(t ,@body))
          (t
-          `((i/=~ ,regexp-or-sym ,expr-sym)
-            (i/with-anaphoric-match-utilities ,expr-sym
+          `((imakado-=~ ,regexp-or-sym ,expr-sym)
+            (imakado-with-anaphoric-match-utilities ,expr-sym
               ,@body))))))
-(defmacro i/case-regexp (expr &rest clauses)
+(defmacro imakado-case-regexp (expr &rest clauses)
   (declare (indent 1)
            (debug (form &rest (form body))))
-  (i/with-gensyms (expr-tmp)
+  (imakado-with-gensyms (expr-tmp)
     `(let ((,expr-tmp ,expr))
        (etypecase ,expr-tmp
-         (string (cond ,@(i/case-regexp-aux expr-tmp clauses)))))))
+         (string (cond ,@(imakado-case-regexp-aux expr-tmp clauses)))))))
 
-;;;; i/match-with-temp-buffer
-(defmacro i/match-with-temp-buffer (spec &rest body)
+;;;; imakado-match-with-temp-buffer
+(defmacro imakado-match-with-temp-buffer (spec &rest body)
   (declare (indent 1)
            (debug ((form form &optional form) body)))
   (let* ((ret-form (nth 2 spec)))
-    (i/with-gensyms (re str g-loop-res)
-      `(dbind (,re ,str ) (list ,(nth 0 spec) ,(nth 1 spec))
+    (imakado-with-gensyms (re str g-loop-res)
+      `(imakado-dbind (,re ,str ) (list ,(nth 0 spec) ,(nth 1 spec))
          (with-temp-buffer
              (insert ,str)
              (loop with ,g-loop-res
                    initially (goto-char (point-min))
                    while (re-search-forward ,re nil t)
                    ,@(if ret-form
-                        `( do (i/with-anaphoric-match-utilities nil
+                        `( do (imakado-with-anaphoric-match-utilities nil
                                 ,@body))
-                       `(do (push (i/with-anaphoric-match-utilities nil
+                       `(do (push (imakado-with-anaphoric-match-utilities nil
                                   ,@body)
                                 ,g-loop-res)))
                    finally return ,(or ret-form `,g-loop-res)))))))
 
 ;;;; With-
 
-(defmacro i/with-temp-buffer-file (file &rest body)
+(defmacro imakado-with-temp-buffer-file (file &rest body)
   (declare (indent 1)
            (debug (form body)))
   `(with-temp-buffer
@@ -843,34 +851,34 @@ hoge-huga-foo
       (desc "+++++ prepare +++++")
       (expect (true)
         (require 'imakado))
-      (desc "+++++ i/with-temp-buffer-file +++++")
+      (desc "+++++ imakado-with-temp-buffer-file +++++")
       (expect ";;; imakado.el - imakado's usefull macros"
         (require 'find-func)
-        (i/with-temp-buffer-file (find-library-name "imakado")
+        (imakado-with-temp-buffer-file (find-library-name "imakado")
           (buffer-substring-no-properties (point) (point-at-eol))))
       (expect (error)
         (let ((nonexistent-filename (loop for n from 1 to 9999
                                           for nonexistent-filename = (format "/aa-%s" n)
                                           unless (file-readable-p nonexistent-filename)
                                           return nonexistent-filename)))
-          (i/with-temp-buffer-file nonexistent-filename
+          (imakado-with-temp-buffer-file nonexistent-filename
             'no-error))))))
 
-(defmacro i/match-with-temp-buffer-file (spec &rest body)
+(defmacro imakado-match-with-temp-buffer-file (spec &rest body)
   (declare (indent 1)
            (debug ((form form &optional form) body)))
-  (i/with-gensyms (g-file-contents-str)
-    `(let ((,g-file-contents-str ,(i/with-temp-buffer-file (nth 1 spec)
+  (imakado-with-gensyms (g-file-contents-str)
+    `(let ((,g-file-contents-str ,(imakado-with-temp-buffer-file (nth 1 spec)
                                     (buffer-substring-no-properties (point-min) (point-max)))))
-       (i/match-with-temp-buffer (,(nth 0 spec) ,g-file-contents-str ,(nth 2 spec))
+       (imakado-match-with-temp-buffer (,(nth 0 spec) ,g-file-contents-str ,(nth 2 spec))
          ,@body))))
 
 
 ;;;; Buffer
-(defmacro i/save-excursion-force (&rest body)
+(defmacro imakado-save-excursion-force (&rest body)
   (declare (indent 0)
            (debug (body)))
-  (i/with-gensyms (saved-point saved-current-buffer)
+  (imakado-with-gensyms (saved-point saved-current-buffer)
     `(let ((,saved-point (point))
            (,saved-current-buffer (current-buffer)))
        (prog1 (progn ,@body)
@@ -878,21 +886,21 @@ hoge-huga-foo
            (and (eq ,saved-current-buffer (current-buffer))
                 (goto-char ,saved-point)))))))
 
-(defsubst i/goto-pointmark-and-delete ()
+(defsubst imakado-goto-pointmark-and-delete ()
   (when (re-search-forward (rx "`!!'") nil t)
     (replace-match "")))
-(defmacro i/with-point-buffer (str &rest body)
+(defmacro imakado-with-point-buffer (str &rest body)
   (declare (indent 1)
            (debug (form body)))
   `(with-temp-buffer
      (insert ,str)
      (goto-char (point-min))
-     (i/goto-pointmark-and-delete)
+     (imakado-goto-pointmark-and-delete)
      (progn
        ,@body)))
 
 ;;;; Keymap
-(defmacro* i/define-define-keymap (name keymap &key (doc nil))
+(defmacro* imakado-define-define-keymap (name keymap &key (doc nil))
   `(etypecase ,keymap
      (keymap
       (defmacro ,name (key-str-or-vector command)
@@ -901,15 +909,15 @@ hoge-huga-foo
           (string `(define-key ,',keymap (kbd ,key-str-or-vector) ,command))
           (t `(define-key ,',keymap ,key-str-or-vector ,command)))))))
 
-;;;; i/defcacheable
-(defmacro* i/defcacheable (name args &rest body)
+;;;; imakado-defcacheable
+(defmacro* imakado-defcacheable (name args &rest body)
   (declare (indent 2)
            (debug defun*))
-  (flet ((i/defcacheable-doc&body (body)
+  (flet ((imakado-defcacheable-doc&body (body)
           (typecase (car-safe body)
             (string (values (car body) (cdr body)))
             (otherwise (values nil body)))))
-    (destructuring-bind (doc body) (i/defcacheable-doc&body body)
+    (destructuring-bind (doc body) (imakado-defcacheable-doc&body body)
       (let* ((cache-var-sym (intern (format "%s-cache" name)))
              (clear-cache-fn-sym (intern (format "%s-clear-cache" name))))
         `(progn
@@ -927,56 +935,56 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/defcacheable +++++")
+      (desc "+++++ imakado-defcacheable +++++")
       (desc "defined ok")
       (expect t
         (let ((call-count 0))
-          (makunbound 'i/--test-defcacheable-fn-cache)
-          (fmakunbound 'i/--test-defcacheable-fn-clear-cache)
-          (fmakunbound 'i/--test-defcacheable-fn)
-          (i/defcacheable i/--test-defcacheable-fn ()
+          (makunbound 'imakado---test-defcacheable-fn-cache)
+          (fmakunbound 'imakado---test-defcacheable-fn-clear-cache)
+          (fmakunbound 'imakado---test-defcacheable-fn)
+          (imakado-defcacheable imakado---test-defcacheable-fn ()
             "docstr"
             (prog1 "cache me if you can!"
               (incf call-count)))
-          (and (boundp 'i/--test-defcacheable-fn-cache)
-               (fboundp 'i/--test-defcacheable-fn)
-               (fboundp 'i/--test-defcacheable-fn-clear-cache))))
+          (and (boundp 'imakado---test-defcacheable-fn-cache)
+               (fboundp 'imakado---test-defcacheable-fn)
+               (fboundp 'imakado---test-defcacheable-fn-clear-cache))))
       (desc "call just once")
       (expect '("cache me if you can!" 1)
         (let ((call-count 0))
-          (makunbound 'i/--test-defcacheable-fn-cache)
-          (fmakunbound 'i/--test-defcacheable-fn-clear-cache)
-          (fmakunbound 'i/--test-defcacheable-fn)
-          (i/defcacheable i/--test-defcacheable-fn ()
+          (makunbound 'imakado---test-defcacheable-fn-cache)
+          (fmakunbound 'imakado---test-defcacheable-fn-clear-cache)
+          (fmakunbound 'imakado---test-defcacheable-fn)
+          (imakado-defcacheable imakado---test-defcacheable-fn ()
             "docstr"
             (prog1 "cache me if you can!"
               (incf call-count)))
-          (i/--test-defcacheable-fn)
-          (let ((res (i/--test-defcacheable-fn)))
+          (imakado---test-defcacheable-fn)
+          (let ((res (imakado---test-defcacheable-fn)))
             (list res call-count))))
       (desc "clear cache")
       (expect 2
         (let ((call-count 0))
-          (makunbound 'i/--test-defcacheable-fn-cache)
-          (fmakunbound 'i/--test-defcacheable-fn-clear-cache)
-          (fmakunbound 'i/--test-defcacheable-fn)
-          (i/defcacheable i/--test-defcacheable-fn ()
+          (makunbound 'imakado---test-defcacheable-fn-cache)
+          (fmakunbound 'imakado---test-defcacheable-fn-clear-cache)
+          (fmakunbound 'imakado---test-defcacheable-fn)
+          (imakado-defcacheable imakado---test-defcacheable-fn ()
             "docstr"
             (prog1 "cache me if you can!"
               (incf call-count)))
-          (i/--test-defcacheable-fn)
-          (i/--test-defcacheable-fn-clear-cache)
-          (i/--test-defcacheable-fn)
+          (imakado---test-defcacheable-fn)
+          (imakado---test-defcacheable-fn-clear-cache)
+          (imakado---test-defcacheable-fn)
           call-count))
       (desc "cleanup")
       (expect t
-        (progn (makunbound 'i/--test-defcacheable-fn-cache)
-               (fmakunbound 'i/--test-defcacheable-fn-clear-cache)
-               (fmakunbound 'i/--test-defcacheable-fn)
+        (progn (makunbound 'imakado---test-defcacheable-fn-cache)
+               (fmakunbound 'imakado---test-defcacheable-fn-clear-cache)
+               (fmakunbound 'imakado---test-defcacheable-fn)
                t))
       )))
 
-(defmacro* i/memoize
+(defmacro* imakado-memoize
     (fn-sym
      &key
      (save-directory nil)
@@ -994,17 +1002,17 @@ hoge-huga-foo
        (defvar ,saved-alist-sym nil)
        (defun ,load-fn-sym ()
          (when (and ,save-directory
-                    (i/aand (i/dirconcat ,save-directory ,save-file-name)
+                    (imakado-aand (imakado-dirconcat ,save-directory ,save-file-name)
                           (file-readable-p it)))
            (ignore-errors
              (load (file-name-sans-extension
-                    (i/dirconcat ,save-directory ,save-file-name)))
+                    (imakado-dirconcat ,save-directory ,save-file-name)))
              ,saved-alist-sym)))
-       (i/defcacheable ,hash-fn-sym ()
+       (imakado-defcacheable ,hash-fn-sym ()
          (let ((hsh (make-hash-table :test 'equal :size ,hash-size)))
            (cond
             (,save-directory
-             (i/aand (,load-fn-sym)
+             (imakado-aand (,load-fn-sym)
                    (loop for (k . v) in it
                          do (puthash k v hsh)))
              hsh)
@@ -1025,7 +1033,7 @@ hoge-huga-foo
                         (current-buffer))
                  (insert "\n")
                  (let ((coding-system-for-write ,encoding)
-                       (save-file (i/dirconcat ,save-directory ,save-file-name)))
+                       (save-file (imakado-dirconcat ,save-directory ,save-file-name)))
                    (write-region (point-min)
                                  (point-max)
                                  save-file
@@ -1036,7 +1044,7 @@ hoge-huga-foo
        (defadvice ,fn-sym (around ,(intern (format "memoize-%s" (symbol-name fn-sym)))
                                   (key)
                                   activate)
-         (i/acond
+         (imakado-acond
            ((,get-fn-sym key)
             (setq ad-return-value it))
            (t
@@ -1046,42 +1054,42 @@ hoge-huga-foo
           `(add-hook 'kill-emacs-hook
                      ',save-fn-sym))
        )))
-;; (i/memoize 'fnn)
+;; (imakado-memoize 'fnn)
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/memoize +++++")
+      (desc "+++++ imakado-memoize +++++")
       (desc "prepare")
       (expect t
         (lexical-let ((alist '(("apple" . "fruit")
                                ("cat" . "animal")))
                       (call-count 0))
-          (fmakunbound 'i/--test-memoize-fn)
-          (defun* i/--test-memoize-fn (key)
+          (fmakunbound 'imakado---test-memoize-fn)
+          (defun* imakado---test-memoize-fn (key)
             (prog1 (assoc-default key alist)
               (incf call-count)))
           t)
         )
       (desc "basic")
       (expect t
-        (i/memoize 'i/--test-memoize-fn
-                 :save-directory (i/dirconcat (file-name-directory
+        (imakado-memoize 'imakado---test-memoize-fn
+                 :save-directory (imakado-dirconcat (file-name-directory
                                              (find-library-name "imakado"))
                                             "tmp")
                  :encoding 'japanese-shift-jis-dos
                  :hash-size 20000)
-        (i/--test-memoize-fn "apple")
-        (i/--test-memoize-fn "cat")
-        (i/--test-memoize-fn-hash)
-        (i/--test-memoize-fn-hash-clear-cache)
-        (i/--test-memoize-fn-save)
-        (i/--test-memoize-fn-load)
+        (imakado---test-memoize-fn "apple")
+        (imakado---test-memoize-fn "cat")
+        (imakado---test-memoize-fn-hash)
+        (imakado---test-memoize-fn-hash-clear-cache)
+        (imakado---test-memoize-fn-save)
+        (imakado---test-memoize-fn-load)
         )
       )))
 
 
-;;;; i/do-temp-file
-(defmacro* i/do-temp-file
+;;;; imakado-do-temp-file
+(defmacro* imakado-do-temp-file
     ((temp-file-var
       &optional
       file-contents-string
@@ -1091,7 +1099,7 @@ hoge-huga-foo
      &rest body)
   (declare (indent 1)
            (debug ((symbolp form &optional form symbolp form) body)))
-  (i/with-gensyms (g-file-contents-string)
+  (imakado-with-gensyms (g-file-contents-string)
     `(let ((,g-file-contents-string ,file-contents-string)
            (,temp-file-var (make-temp-file (format "%s" (or ,temp-file-prefix "do-temp-file."))
                                            nil
@@ -1108,36 +1116,36 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/do-temp-file +++++")
-      (expect (regexp "i/do-temp-file\\.")
-        (i/do-temp-file (tempfile "contents")
+      (desc "+++++ imakado-do-temp-file +++++")
+      (expect (regexp "imakado-do-temp-file\\.")
+        (imakado-do-temp-file (tempfile "contents")
           tempfile))
       (expect (regexp "prefix-")
-        (i/do-temp-file (tempfile "contents" "prefix-")
+        (imakado-do-temp-file (tempfile "contents" "prefix-")
           tempfile))
       (expect "contents"
-        (i/do-temp-file (tempfile "contents" "prefix-")
-          (i/with-temp-buffer-file tempfile
+        (imakado-do-temp-file (tempfile "contents" "prefix-")
+          (imakado-with-temp-buffer-file tempfile
             (buffer-substring-no-properties (point-min) (point-max)))))
       (desc "omit arg")
       (expect t
-        (i/do-temp-file (tempfile)
+        (imakado-do-temp-file (tempfile)
           (file-exists-p tempfile)))
       (desc "cleanup")
       (expect nil
         (let ((gtempfile nil))
-          (i/do-temp-file (tempfile "contents" "prefix-")
+          (imakado-do-temp-file (tempfile "contents" "prefix-")
             (setq gtempfile tempfile))
           (file-exists-p gtempfile)))
       )))
 
 
-;;;; i/for-each-single-property-change
-(defmacro i/for-each-single-property-change (property i/fn)
-  "i/fn is called with two args (current-point next-change-point)"
+;;;; imakado-for-each-single-property-change
+(defmacro imakado-for-each-single-property-change (property imakado-fn)
+  "imakado-fn is called with two args (current-point next-change-point)"
   (declare (debug (form form)))
-  (i/with-gensyms (g-fn g-property g-next-change g-current-point)
-    `(let ((,g-fn ,i/fn)
+  (imakado-with-gensyms (g-fn g-property g-next-change g-current-point)
+    `(let ((,g-fn ,imakado-fn)
            (,g-property ,property)
            (,g-next-change nil)
            (,g-current-point nil))
@@ -1153,9 +1161,9 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/for-each-single-property-change +++++")
+      (desc "+++++ imakado-for-each-single-property-change +++++")
       (expect (true)
-        (i/with-temp-buffer-file (find-library-name "imakado")
+        (imakado-with-temp-buffer-file (find-library-name "imakado")
           (emacs-lisp-mode)
           (font-lock-mode t)
           (save-excursion (font-lock-fontify-region (point-min) (point-max)))
@@ -1163,21 +1171,21 @@ hoge-huga-foo
                 (func-name-collector (lambda (p next-change)
                                        (when (eq (get-text-property p 'face) 'font-lock-function-name-face)
                                          (push (buffer-substring-no-properties p next-change) ret)))))
-            (i/for-each-single-property-change 'face func-name-collector)
-            (i/remif (i/fn (i/=~ "^ik:test-" _)) ret))))
+            (imakado-for-each-single-property-change 'face func-name-collector)
+            (imakado-remif (imakado-fn (imakado-=~ "^ik:test-" _)) ret))))
       )))
 
 ;;;; Eieio utils
-(defsubst i/define-defmethod-modifies&rest (args)
+(defsubst imakado-define-defmethod-modifies&rest (args)
   (case (car-safe args)
     ((:before :primary :after :static)
      (values (car args) (cdr args)))
     (t (values nil args))))
-(defsubst i/define-defmethod-add-self-to-args (class rest)
-  (dbind (args . body) rest
+(defsubst imakado-define-defmethod-add-self-to-args (class rest)
+  (imakado-dbind (args . body) rest
     (cons (cons `(self ,class) args)
           body)))
-(defmacro i/define-defmethod (name class)
+(defmacro imakado-define-defmethod (name class)
   (declare (debug (symbolp symbolp)))
   `(defmacro* ,name (method &rest body)
      (declare (indent 2)
@@ -1188,29 +1196,29 @@ hoge-huga-foo
                       list
                       [&optional stringp]
                       def-body)))
-     (dbind (modifier rest) (i/define-defmethod-modifies&rest
+     (imakado-dbind (modifier rest) (imakado-define-defmethod-modifies&rest
                              body)
-       (let* ((rest (i/define-defmethod-add-self-to-args ',class rest))
+       (let* ((rest (imakado-define-defmethod-add-self-to-args ',class rest))
               (args (if modifier
                         (cons modifier rest)
                       rest)))
          (cons 'defmethod
                (cons method args))))))
 
-;;;; i/defclass+
-(defmacro i/defclass+ (&rest args)
+;;;; imakado-defclass+
+(defmacro imakado-defclass+ (&rest args)
   (let* ((name (car args))
          (defmethod-macro-sym (intern (format "%s-defmethod" name))))
     `(prog1
        (defclass ,@args)
-       (i/define-defmethod ,defmethod-macro-sym ,name))))
+       (imakado-define-defmethod ,defmethod-macro-sym ,name))))
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/defclass+ +++++")
+      (desc "+++++ imakado-defclass+ +++++")
       (expect "aa"
         (flet ((tests/class-b ()))
-          (i/defclass+ tests/class-b ()
+          (imakado-defclass+ tests/class-b ()
             ((slot-a :initarg :slot-a
                      :initform nil))
             "class a")
@@ -1223,43 +1231,43 @@ hoge-huga-foo
             (tests/--test-method ins))))
       )))
 
-;;;; i/require-methods
-(defsubst* i/require-methods-aux (class methods)
+;;;; imakado-require-methods
+(defsubst* imakado-require-methods-aux (class methods)
   (loop for method in methods
         collect `(defmethod ,method ((self ,class) &rest ignore)
                    (error "this function should be implemented in subclasses."))))
-(defmacro i/require-methods (class methods)
+(defmacro imakado-require-methods (class methods)
   (declare (indent 1)
            (debug (symbolp list)))
-  `(progn ,@(i/require-methods-aux class methods)))
+  `(progn ,@(imakado-require-methods-aux class methods)))
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/require-methods +++++")
+      (desc "+++++ imakado-require-methods +++++")
       (expect (error)
         (progn
-          (i/defclass+ i/--test-require-methods ()
+          (imakado-defclass+ imakado---test-require-methods ()
             ()
             "class")
-          (i/require-methods i/--test-require-methods
-            (i/--test-require-methods-interface-fn))
-          (let ((ins (make-instance 'i/--test-require-methods)))
-            (i/--test-require-methods-interface-fn ins))))
+          (imakado-require-methods imakado---test-require-methods
+            (imakado---test-require-methods-interface-fn))
+          (let ((ins (make-instance 'imakado---test-require-methods)))
+            (imakado---test-require-methods-interface-fn ins))))
       (desc "call with arg")
       (expect (error)
         (progn
-          (i/defclass+ i/--test-require-methods ()
+          (imakado-defclass+ imakado---test-require-methods ()
             ()
             "class")
-          (i/require-methods i/--test-require-methods
-            (i/--test-require-methods-interface-fn))
-          (let ((ins (make-instance 'i/--test-require-methods)))
-            (i/--test-require-methods-interface-fn ins 'a 'b 'c))))
+          (imakado-require-methods imakado---test-require-methods
+            (imakado---test-require-methods-interface-fn))
+          (let ((ins (make-instance 'imakado---test-require-methods)))
+            (imakado---test-require-methods-interface-fn ins 'a 'b 'c))))
       )))
 
 
-;;;; i/with-orefs
-(defmacro i/with-orefs (clauses obj &rest body)
+;;;; imakado-with-orefs
+(defmacro imakado-with-orefs (clauses obj &rest body)
   (declare (indent 2)
            (debug ((symbolp &rest symbolp) form body)))
   (let ((clas
@@ -1273,25 +1281,25 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/with-orefs +++++")
+      (desc "+++++ imakado-with-orefs +++++")
       (expect '(1 2)
         (progn
-          (i/defclass+ i/--test-with-orefs ()
+          (imakado-defclass+ imakado---test-with-orefs ()
             ((slo1 :initarg :slo1
                    :type integer)
              (slo2 :initarg :slo2
                    :type integer))
             "class")
-          (let ((ins (make-instance 'i/--test-with-orefs
+          (let ((ins (make-instance 'imakado---test-with-orefs
                                     :slo1 1
                                     :slo2 2)))
-            (i/with-orefs (slo1 (s2 slo2)) ins
+            (imakado-with-orefs (slo1 (s2 slo2)) ins
                         (list slo1 s2))))
         )
       )))
 
-;;;; i/require-slots
-(defmacro i/require-slots (class slots)
+;;;; imakado-require-slots
+(defmacro imakado-require-slots (class slots)
   (declare (indent 1)
            (debug (symbolp list)))
   `(defmethod initialize-instance :AFTER ((self ,class) &rest ignore)
@@ -1303,32 +1311,32 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/require-slots +++++")
+      (desc "+++++ imakado-require-slots +++++")
       (expect (error)
         (progn
-          (i/defclass+ i/--test-require-slots ()
+          (imakado-defclass+ imakado---test-require-slots ()
             ((slo1 :initarg :slo1
                    :type integer)
              (slo2 :initarg :slo2
                    :type integer))
             "class")
-          (i/require-slots i/--test-require-slots
+          (imakado-require-slots imakado---test-require-slots
                          (slo2))
-          (make-instance 'i/--test-require-slots
+          (make-instance 'imakado---test-require-slots
                          :slo1 1))
         )
       (expect t
         (progn
-          (i/defclass+ i/--test-require-slots ()
+          (imakado-defclass+ imakado---test-require-slots ()
             ((slo1 :initarg :slo1
                    :type integer)
              (slo2 :initarg :slo2
                    :type integer))
             "class")
-          (i/require-slots i/--test-require-slots
+          (imakado-require-slots imakado---test-require-slots
                          (slo2))
-          (i/--test-require-slots-child-p
-           (make-instance 'i/--test-require-slots
+          (imakado---test-require-slots-child-p
+           (make-instance 'imakado---test-require-slots
                           :slo1 1
                           :slo2 2)))
         )
@@ -1340,7 +1348,7 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/define-defmethod +++++")
+      (desc "+++++ imakado-define-defmethod +++++")
       (expect (true)
         (flet ((tests/class-a ())
                (message (&rest args) (print (apply 'format args))))
@@ -1348,33 +1356,33 @@ hoge-huga-foo
             ((slot-a :initarg :slot-a
                      :initform nil))
             "class a")
-          (i/define-defmethod def-tests/class-a-method tests/class-a)
-          (def-tests/class-a-method i/--test-say-ya ()
+          (imakado-define-defmethod def-tests/class-a-method tests/class-a)
+          (def-tests/class-a-method imakado---test-say-ya ()
             (message "%s" self))
-          (def-tests/class-a-method i/--test-say-ya :before ()
-            (message "%s" ":before i/--test-say-ya"))
+          (def-tests/class-a-method imakado---test-say-ya :before ()
+            (message "%s" ":before imakado---test-say-ya"))
           (let ((res (with-output-to-string
-                       (i/--test-say-ya (make-instance 'tests/class-a)))))
-            (and (string-match ":before i/--test-say-ya" res)
+                       (imakado---test-say-ya (make-instance 'tests/class-a)))))
+            (and (string-match ":before imakado---test-say-ya" res)
                  (string-match "[object tests/class-a tests/class-a nil]" res)))))
 
-      (desc "+++++ i/define-defmethod-modifies&rest +++++")
+      (desc "+++++ imakado-define-defmethod-modifies&rest +++++")
       (expect '(:before (((cla-a tests/class-a)) (message "%s" ":before say-ya")))
-        (dbind (modifier body) (i/define-defmethod-modifies&rest
+        (imakado-dbind (modifier body) (imakado-define-defmethod-modifies&rest
                                 '(:before
                                   ((cla-a tests/class-a))
                                   (message "%s" ":before say-ya")))
           (list modifier body))
         )
       (expect '(nil (((cla-a tests/class-a)) (message "%s" ":before say-ya")))
-        (dbind (modifier body) (i/define-defmethod-modifies&rest
+        (imakado-dbind (modifier body) (imakado-define-defmethod-modifies&rest
                                 '(((cla-a tests/class-a))
                                   (message "%s" ":before say-ya")))
           (list modifier body)))
 
-      (desc "+++++ i/define-defmethod-add-self-to-args +++++")
+      (desc "+++++ imakado-define-defmethod-add-self-to-args +++++")
       (expect '(((self tests/class-a) arg1 arg2) (message "%s" ":before say-ya"))
-        (i/define-defmethod-add-self-to-args
+        (imakado-define-defmethod-add-self-to-args
          'tests/class-a
          '((arg1 arg2)
            (message "%s" ":before say-ya"))))
@@ -1383,33 +1391,33 @@ hoge-huga-foo
 
 ;;;; Simple template
 (eval-when-compile
-  (defvar i/simple-template-expression_mark "=")
-  (defvar i/simple-template-comment_mark "#")
+  (defvar imakado-simple-template-expression_mark "=")
+  (defvar imakado-simple-template-comment_mark "#")
 
-  (defvar i/simple-template-tag-start "[%")
-  (defvar i/simple-template-tag-end "%]")
-  (defvar i/simple-template-tag-expression-start
-    (concat i/simple-template-tag-start
-            i/simple-template-expression_mark))
-  (defvar i/simple-template-tag-comment-start
-    (concat i/simple-template-tag-start
-            i/simple-template-comment_mark))
+  (defvar imakado-simple-template-tag-start "[%")
+  (defvar imakado-simple-template-tag-end "%]")
+  (defvar imakado-simple-template-tag-expression-start
+    (concat imakado-simple-template-tag-start
+            imakado-simple-template-expression_mark))
+  (defvar imakado-simple-template-tag-comment-start
+    (concat imakado-simple-template-tag-start
+            imakado-simple-template-comment_mark))
   ) ;; eval-when-compile
 (eval-when-compile
-  (defvar i/simple-template-token-separator-re
-    (rx (or (eval (eval-when-compile i/simple-template-tag-expression-start))
-            (eval (eval-when-compile i/simple-template-tag-comment-start))
-            (eval (eval-when-compile i/simple-template-tag-start))
-            (eval (eval-when-compile i/simple-template-tag-end))))))
+  (defvar imakado-simple-template-token-separator-re
+    (rx (or (eval (eval-when-compile imakado-simple-template-tag-expression-start))
+            (eval (eval-when-compile imakado-simple-template-tag-comment-start))
+            (eval (eval-when-compile imakado-simple-template-tag-start))
+            (eval (eval-when-compile imakado-simple-template-tag-end))))))
 
-(defsubst i/simple-template-parse-buffer-get-token-and-advance ()
+(defsubst imakado-simple-template-parse-buffer-get-token-and-advance ()
   (let ((p (point)))
     (cond
      ((eobp) nil)
-     ((looking-at (eval-when-compile i/simple-template-token-separator-re))
+     ((looking-at (eval-when-compile imakado-simple-template-token-separator-re))
       (prog1 (match-string-no-properties 0)
         (goto-char (match-end 0))))
-     ((re-search-forward (eval-when-compile i/simple-template-token-separator-re) nil t)
+     ((re-search-forward (eval-when-compile imakado-simple-template-token-separator-re) nil t)
       (goto-char (match-beginning 0))
       (buffer-substring-no-properties p (point)))
      (t
@@ -1418,30 +1426,30 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "i/simple-template-parse-buffer-get-token-and-advance")
+      (desc "imakado-simple-template-parse-buffer-get-token-and-advance")
       (expect '("The " "[%" "  " "%]" " " "[%#" " perfect " "%]" " " "[%=" " insider " "%]" ".")
-        (i/with-point-buffer "The [%  %] [%# perfect %] [%= insider %]."
+        (imakado-with-point-buffer "The [%  %] [%# perfect %] [%= insider %]."
           (goto-char (point-min))
-          (loop for token = (i/simple-template-parse-buffer-get-token-and-advance)
+          (loop for token = (imakado-simple-template-parse-buffer-get-token-and-advance)
                 while token
                 collect token)))
       (desc "newline")
       (expect '("The " "[%" "  " "%]" " " "[%#" " \nperfect " "%]" " " "[%=" " outsider " "%]" ".")
-        (i/with-point-buffer "The [%  %] [%# \nperfect %] [%= outsider %]."
+        (imakado-with-point-buffer "The [%  %] [%# \nperfect %] [%= outsider %]."
           (goto-char (point-min))
-          (loop for token = (i/simple-template-parse-buffer-get-token-and-advance)
+          (loop for token = (imakado-simple-template-parse-buffer-get-token-and-advance)
                 while token
                 collect token)))
       (expect nil
-        (i/with-point-buffer ""
+        (imakado-with-point-buffer ""
           (goto-char (point-min))
-          (loop for token = (i/simple-template-parse-buffer-get-token-and-advance)
+          (loop for token = (imakado-simple-template-parse-buffer-get-token-and-advance)
                 while token
                 collect token)))
       (expect '("newline\n")
-        (i/with-point-buffer "newline\n"
+        (imakado-with-point-buffer "newline\n"
           (goto-char (point-min))
-          (loop for token = (i/simple-template-parse-buffer-get-token-and-advance)
+          (loop for token = (imakado-simple-template-parse-buffer-get-token-and-advance)
                 while token
                 collect token)))
       (expect '("[%" " (if flag " "%]" "\n" "[%" " ) " "%]")
@@ -1450,26 +1458,26 @@ hoge-huga-foo
               (tmpl "\
 \[% (if flag %]
 \[% ) %]"))
-          (i/with-point-buffer tmpl
+          (imakado-with-point-buffer tmpl
             (goto-char (point-min))
-            (loop for token = (i/simple-template-parse-buffer-get-token-and-advance)
+            (loop for token = (imakado-simple-template-parse-buffer-get-token-and-advance)
                   while token
                   collect token))))
       )))
 
-(defsubst i/simple-template-parse-buffer ()
+(defsubst imakado-simple-template-parse-buffer ()
   (let ((state 'text)
         (multiline_expression nil)
         (tree nil)
-        (tag-end (eval-when-compile i/simple-template-tag-end))
-        (tag-start (eval-when-compile i/simple-template-tag-start))
-        (tag-comment-start (eval-when-compile i/simple-template-tag-comment-start))
-        (expression-start (eval-when-compile i/simple-template-tag-expression-start)))
+        (tag-end (eval-when-compile imakado-simple-template-tag-end))
+        (tag-start (eval-when-compile imakado-simple-template-tag-start))
+        (tag-comment-start (eval-when-compile imakado-simple-template-tag-comment-start))
+        (expression-start (eval-when-compile imakado-simple-template-tag-expression-start)))
     (loop initially (goto-char (point-min))
           with tokens
-          for token = (i/simple-template-parse-buffer-get-token-and-advance)
+          for token = (imakado-simple-template-parse-buffer-get-token-and-advance)
           while token
-          do (i/xcase= token
+          do (imakado-xcase= token
                ((tag-end)
                 (setq state 'text
                       multiline_expression nil))
@@ -1490,25 +1498,25 @@ hoge-huga-foo
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "i/simple-template-parse-buffer")
+      (desc "imakado-simple-template-parse-buffer")
       (expect nil
-        (i/with-point-buffer "[%# \nperfect %]"
-          (i/simple-template-parse-buffer)))
+        (imakado-with-point-buffer "[%# \nperfect %]"
+          (imakado-simple-template-parse-buffer)))
       (expect '((text "The ") (code " aa ") (text " \n ") (text " ") (expr " insider ") (text "."))
-        (i/with-point-buffer "The [% aa %] \n [%# \nperfect %] [%= insider %]."
-          (i/simple-template-parse-buffer)))
+        (imakado-with-point-buffer "The [% aa %] \n [%# \nperfect %] [%= insider %]."
+          (imakado-simple-template-parse-buffer)))
       )))
 
-(defsubst* i/simple-template-compile-aux (type value &key (insert-fn 'insert))
+(defsubst* imakado-simple-template-compile-aux (type value &key (insert-fn 'insert))
   (ecase type
     (text (prin1 `(,insert-fn ,value) (current-buffer)))
     (code (insert value))
     (expr (insert "(insert " value ")"))))
-(defsubst* i/simple-template-compile (tree)
+(defsubst* imakado-simple-template-compile (tree)
   (with-temp-buffer
     (insert "(progn ")
     (loop for (type value) in tree
-          do (i/simple-template-compile-aux type value))
+          do (imakado-simple-template-compile-aux type value))
     (insert ")")
     (goto-char (point-min))
     (condition-case err
@@ -1518,29 +1526,29 @@ hoge-huga-foo
 ERROR occur during compiling template.\ntree: %S\ncompiled source: %S\nerror-message: %s"
               tree (buffer-substring-no-properties (point-min) (point-max))
               (error-message-string err))))))
-(defvar i/*simple-template-output-buffer nil
+(defvar imakado-*simple-template-output-buffer nil
   "this variable must be let bounded")
 
-(defsubst* i/simple-template-buffer ()
+(defsubst* imakado-simple-template-buffer ()
   ;; this temp var name should be prefixed.
-  ;; please see test -> (desc "Note, variable `i/--form' is seen inside tmplate.")
-  (let ((i/--form (i/simple-template-compile
-                    (i/simple-template-parse-buffer)))
-        (i/--output-buffer
-         (and (boundp 'i/*simple-template-output-buffer)
-              (or (stringp (symbol-value 'i/*simple-template-output-buffer))
-                  (bufferp (symbol-value 'i/*simple-template-output-buffer)))
-              (get-buffer (symbol-value 'i/*simple-template-output-buffer)))))
+  ;; please see test -> (desc "Note, variable `imakado---form' is seen inside tmplate.")
+  (let ((imakado---form (imakado-simple-template-compile
+                    (imakado-simple-template-parse-buffer)))
+        (imakado---output-buffer
+         (and (boundp 'imakado-*simple-template-output-buffer)
+              (or (stringp (symbol-value 'imakado-*simple-template-output-buffer))
+                  (bufferp (symbol-value 'imakado-*simple-template-output-buffer)))
+              (get-buffer (symbol-value 'imakado-*simple-template-output-buffer)))))
     (cond
-     (i/--output-buffer
-      (with-current-buffer i/--output-buffer
-        (eval i/--form)))
+     (imakado---output-buffer
+      (with-current-buffer imakado---output-buffer
+        (eval imakado---form)))
      (t
       (with-temp-buffer
-        (eval i/--form)
+        (eval imakado---form)
         (buffer-string))))))
 
-(defsubst* i/simple-template (file-or-list-of-file)
+(defsubst* imakado-simple-template (file-or-list-of-file)
   (assert (not (null file-or-list-of-file)))
   (with-temp-buffer
     (etypecase file-or-list-of-file
@@ -1548,20 +1556,20 @@ ERROR occur during compiling template.\ntree: %S\ncompiled source: %S\nerror-mes
               (insert-file-contents file)
               (goto-char (point-max))))
       (string (insert-file-contents file-or-list-of-file)))
-    (i/simple-template-buffer)))
+    (imakado-simple-template-buffer)))
 
-(defsubst* i/simple-template-string (str-or-list-of-string)
+(defsubst* imakado-simple-template-string (str-or-list-of-string)
   (assert (not (null str-or-list-of-string)))
   (with-temp-buffer
     (etypecase str-or-list-of-string
       (list (insert (mapconcat 'identity str-or-list-of-string "")))
       (string (insert str-or-list-of-string)))
-    (i/simple-template-buffer)))
+    (imakado-simple-template-buffer)))
 
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/simple-template +++++")
+      (desc "+++++ imakado-simple-template +++++")
       (desc "basic string")
       (expect "\nflag is non-nil\n"
         (let ((o "you")
@@ -1573,112 +1581,112 @@ ERROR occur during compiling template.\ntree: %S\ncompiled source: %S\nerror-mes
 \[%# *commant*  %]
 \[% (insert \"flag is nil\") %]
 \[% )) %][%# end COND %]"))
-          (i/simple-template-string tmpl)))
+          (imakado-simple-template-string tmpl)))
 
-      (desc "Note, variable `i/--form' is seen inside tmplate.")
+      (desc "Note, variable `imakado---form' is seen inside tmplate.")
       (expect (error)
-        (let ((i/--form "lexical"))
-          (i/do-temp-file (tfile  "loving [%= i/--form %].")
-            (i/simple-template tfile))))
+        (let ((imakado---form "lexical"))
+          (imakado-do-temp-file (tfile  "loving [%= imakado---form %].")
+            (imakado-simple-template tfile))))
 
       (desc "this gonna well")
       (expect "i miss lexical scope."
         (let ((other-var-name "lexical"))
-          (i/do-temp-file (tfile  "i miss [%= other-var-name %] scope.")
-            (i/simple-template tfile))))
+          (imakado-do-temp-file (tfile  "i miss [%= other-var-name %] scope.")
+            (imakado-simple-template tfile))))
 
       (desc "last newline")
       (expect "newline\n"
-        (i/do-temp-file (tfile  "newline\n")
-          (i/simple-template tfile)))
+        (imakado-do-temp-file (tfile  "newline\n")
+          (imakado-simple-template tfile)))
 
       (desc "basic file")
       (expect "loving you."
         (let ((o  "you"))
-          (i/do-temp-file (tfile  "loving [%= o %].")
-            (i/simple-template tfile))))
+          (imakado-do-temp-file (tfile  "loving [%= o %].")
+            (imakado-simple-template tfile))))
       (desc "allow newline inside tag")
       (expect "loving you."
         (let ((o "you"))
-          (i/do-temp-file (tfile  "loving [%= \n  o \n %].")
-            (i/simple-template tfile))))
+          (imakado-do-temp-file (tfile  "loving [%= \n  o \n %].")
+            (imakado-simple-template tfile))))
 
       (desc "just string")
       (expect "loving you."
-        (i/do-temp-file (tfile  "loving you.")
-          (i/simple-template tfile)))
+        (imakado-do-temp-file (tfile  "loving you.")
+          (imakado-simple-template tfile)))
 
       (desc "[%# ... %] COMMENT")
       (expect "loving"
-        (i/do-temp-file (tfile  "loving[%# COMMENT %]")
-          (i/simple-template tfile)))
+        (imakado-do-temp-file (tfile  "loving[%# COMMENT %]")
+          (imakado-simple-template tfile)))
 
       (desc "[%# ... %] newline inside COMMENT ")
       (expect "loving"
-        (i/do-temp-file (tfile  "loving[%# \n COMMENT \n  %]")
-          (i/simple-template tfile)))
+        (imakado-do-temp-file (tfile  "loving[%# \n COMMENT \n  %]")
+          (imakado-simple-template tfile)))
 
       (desc "call with nil")
       (expect (error)
-        (i/do-temp-file (tfile  "loving[%# \n COMMENT \n  %]")
-          (i/simple-template nil)))
+        (imakado-do-temp-file (tfile  "loving[%# \n COMMENT \n  %]")
+          (imakado-simple-template nil)))
 
       (desc "call with empty string")
       (expect (error)
-        (i/simple-template ""))
+        (imakado-simple-template ""))
 
       (desc "multiple file")
       (expect "1\n2"
         (let ((tmpl1 "1")
               (tmpl2 "2"))
-          (i/do-temp-file (tfile1  "[%= tmpl1 %]\n")
-            (i/do-temp-file (tfile2 "[%= tmpl2 %]")
-              (i/simple-template (list tfile1 tfile2))))))
+          (imakado-do-temp-file (tfile1  "[%= tmpl1 %]\n")
+            (imakado-do-temp-file (tfile2 "[%= tmpl2 %]")
+              (imakado-simple-template (list tfile1 tfile2))))))
 
-      (desc "+++++ i/simple-template-string +++++")
+      (desc "+++++ imakado-simple-template-string +++++")
       (desc "call with nil")
       (expect (error)
-        (i/simple-template-string nil))
+        (imakado-simple-template-string nil))
 
       (desc "call with empty string")
       (expect ""
-        (i/simple-template-string ""))
+        (imakado-simple-template-string ""))
 
 
-      (desc "i/*simple-template-output-buffer")
-      (desc "No error even if `i/*simple-template-output-buffer' is unbound")
+      (desc "imakado-*simple-template-output-buffer")
+      (desc "No error even if `imakado-*simple-template-output-buffer' is unbound")
       (expect "loving you."
-        (let ((i/*simple-template-output-buffer i/*simple-template-output-buffer))
-          (makunbound 'i/*simple-template-output-buffer)
-          (assert (not (boundp 'i/*simple-template-output-buffer)))
+        (let ((imakado-*simple-template-output-buffer imakado-*simple-template-output-buffer))
+          (makunbound 'imakado-*simple-template-output-buffer)
+          (assert (not (boundp 'imakado-*simple-template-output-buffer)))
           (let ((tmpl  "loving you."))
-            (i/simple-template-string tmpl))))
+            (imakado-simple-template-string tmpl))))
 
       (desc "widget.el support")
       (expect 'push-button
         (let ((insert-push-button
-               (i/fn () (widget-create
+               (imakado-fn () (widget-create
                        'push-button
                        :action (lambda (widget &rest ignore))
                        :value "push-button")))
               (tmpl "`!!'[% (funcall insert-push-button) %]")
-              (i/*simple-template-output-buffer
+              (imakado-*simple-template-output-buffer
                (get-buffer-create "*simple-template-output-buffer test*")))
-          (i/simple-template-string tmpl)
+          (imakado-simple-template-string tmpl)
           (with-current-buffer "*simple-template-output-buffer test*"
             (goto-char (point-min))
-            (i/goto-pointmark-and-delete)
+            (imakado-goto-pointmark-and-delete)
             (prog1 (first (get-char-property (point) 'button))
               (kill-buffer "*simple-template-output-buffer test*")))))
       )))
 
-;;;; i/try-these
-(defmacro i/try-these (&rest forms)
+;;;; imakado-try-these
+(defmacro imakado-try-these (&rest forms)
   (declare (debug (&rest form)))
   `(or ,@(loop for form in forms
                collect `(ignore-errors ,form))))
 
-(defmacro i/define-toggle-command (name var)
+(defmacro imakado-define-toggle-command (name var)
   `(defun ,name ()
      (interactive)
      (setq ,var
@@ -1688,50 +1696,50 @@ ERROR occur during compiling template.\ntree: %S\ncompiled source: %S\nerror-mes
 
 
 ;;;; Utils
-(defun i/replace-region-aux (start end cb)
+(defun imakado-replace-region-aux (start end cb)
   (let* ((str (buffer-substring-no-properties start end))
          (rep-str (funcall cb str)))
     (when rep-str
       (delete-region start end)
       (insert rep-str))))
 
-(defun i/empty-string-p (str)
+(defun imakado-empty-string-p (str)
   (or (string-equal "" str)
       (string-match (rx bos (+ space) eos)
                 str)))
 
-(defun i/rt (text face)
+(defun imakado-rt (text face)
   "Put a face to the given text."
   (unless (stringp text) (setq text (format "%s" (or text ""))))
   (put-text-property 0 (length text) 'face face text)
   (put-text-property 0 (length text) 'font-lock-face face text)
   text)
 
-(defsubst i/pput (text prop val)
+(defsubst imakado-pput (text prop val)
   "Put a face to the given text.
 v:0.04"
   (unless (stringp text) (setq text (format "%s" (or text ""))))
   (put-text-property 0 (length text) prop val text)
   text)
 
-(defsubst* i/make-list (a)
+(defsubst* imakado-make-list (a)
   (if (listp a) a (list a)))
 
-(defsubst* i/some (pred xs)
+(defsubst* imakado-some (pred xs)
   (loop for x in xs
         thereis (funcall pred x)))
 
-(defsubst* i/any-match (regexp-or-regexps str)
-  (i/awhen (i/make-list regexp-or-regexps)
-    (i/some (i/fn (string-match _ str)) it)))
-(defalias 'i/some-match 'i/any-match)
+(defsubst* imakado-any-match (regexp-or-regexps str)
+  (imakado-awhen (imakado-make-list regexp-or-regexps)
+    (imakado-some (imakado-fn (string-match _ str)) it)))
+(defalias 'imakado-some-match 'imakado-any-match)
 
 
-(defsubst* i/every (pred xs)
+(defsubst* imakado-every (pred xs)
   (loop for x in xs
         always (funcall pred x)))
 
-(defsubst i/plist-delete (plist prop)
+(defsubst imakado-plist-delete (plist prop)
   "Delete property PROP from property list PLIST by side effect.
 This modifies PLIST."
   ;; deal with prop at the start
@@ -1750,16 +1758,16 @@ This modifies PLIST."
                 l (cddr l))))))
   plist)
 
-(defsubst i/nonempty-string-p (string)
+(defsubst imakado-nonempty-string-p (string)
   (and (stringp string) (not (string= string ""))))
 
-(defsubst* i/acdrs (keys alist)
-  (mapcar (i/fn (_) (i/acdr _ alist)) keys))
+(defsubst* imakado-acdrs (keys alist)
+  (mapcar (imakado-fn (_) (imakado-acdr _ alist)) keys))
 
-(defsubst* i/assocdrs (keys alist)
-  (mapcar (i/fn (_) (assoc-default _ alist)) keys))
+(defsubst* imakado-assocdrs (keys alist)
+  (mapcar (imakado-fn (_) (assoc-default _ alist)) keys))
 
-(defun i/sort-by-regexp (re los)
+(defun imakado-sort-by-regexp (re los)
   (loop for s in los
         with matched
         with unmatched
@@ -1771,7 +1779,7 @@ This modifies PLIST."
                               (nreverse unmatched))))
 
 
-(defsubst* i/avalue-bind-aux (clauses)
+(defsubst* imakado-avalue-bind-aux (clauses)
   (loop with bind-keys
         with alist-keys
         for c in clauses
@@ -1785,18 +1793,18 @@ This modifies PLIST."
         into alist-keys
         finally return (list bind-keys alist-keys)))
 
-(defmacro i/avalue-bind (clause-keys alist &rest body)
+(defmacro imakado-avalue-bind (clause-keys alist &rest body)
   (declare
    (debug ((&rest &or
                   symbolp
                   (symbolp sexp))
            form body))
    (indent 2))
-  (dbind (bind-keys alist-keys) (i/avalue-bind-aux clause-keys)
-    `(dbind ,bind-keys (i/acdrs ',alist-keys ,alist)
+  (imakado-dbind (bind-keys alist-keys) (imakado-avalue-bind-aux clause-keys)
+    `(imakado-dbind ,bind-keys (imakado-acdrs ',alist-keys ,alist)
        ,@body)))
 
-(defsubst* i/assoc-value-bind-aux (clauses)
+(defsubst* imakado-assoc-value-bind-aux (clauses)
   (loop with bind-keys
         with alist-keys
         for c in clauses
@@ -1810,80 +1818,81 @@ This modifies PLIST."
         into alist-keys
         finally return (list bind-keys alist-keys)))
 
-(defmacro i/assoc-value-bind (clause-keys alist &rest body)
+(defmacro imakado-assoc-value-bind (clause-keys alist &rest body)
   (declare
    (debug ((&rest &or
                   stringp
                   (symbolp sexp))
            form body))
    (indent 2))
-  (dbind (bind-keys alist-keys) (i/assoc-value-bind-aux clause-keys)
-    `(dbind ,bind-keys (i/assoc-cdrs ',alist-keys ,alist)
+  (imakado-dbind (bind-keys alist-keys) (imakado-assoc-value-bind-aux clause-keys)
+    `(imakado-dbind ,bind-keys (imakado-assoc-cdrs ',alist-keys ,alist)
        ,@body)))
 
-(defun* i/positions->string (start end &key (buffer (current-buffer)))
+(defun* imakado-positions->string (start end &key (buffer (current-buffer)))
   (with-current-buffer buffer
-    (i/aand (buffer-substring-no-properties
+    (imakado-aand (buffer-substring-no-properties
            start end))))
 
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
       (expect '("bob" "pswd")
-        (i/awhen '((pass . "pswd")
+        (imakado-awhen '((pass . "pswd")
                  (name . "bob"))
-          (i/avalue-bind (name pass) it
+          (imakado-avalue-bind (name pass) it
             (list name pass)))
         )
       (expect '("bob" "pswd")
-        (i/awhen '((pass . "pswd")
+        (imakado-awhen '((pass . "pswd")
                  (name . "bob"))
-          (i/avalue-bind ((__name name) (__pass pass)) it
+          (imakado-avalue-bind ((__name name) (__pass pass)) it
             (list __name __pass)))
         )
 
       (expect '("bob" "pswd")
-        (i/awhen '(("pass" . "pswd")
+        (imakado-awhen '(("pass" . "pswd")
                    ("name" . "bob"))
-          (i/assoc-value-bind ("name" "pass") it
+          (imakado-assoc-value-bind ("name" "pass") it
             (list name pass)))
         )
       (expect '("bob" "pswd")
-        (i/awhen '(("pass" . "pswd")
+        (imakado-awhen '(("pass" . "pswd")
                    ("name" . "bob"))
-          (i/assoc-value-bind ((__name "name") (__pass "pass")) it
+          (imakado-assoc-value-bind ((__name "name") (__pass "pass")) it
             (list __name __pass)))
         ))))
 
-(defun* i/cycle-list-gen
+(defun* imakado-cycle-list-gen
   (&key get-list-fn
         (cb 'identity)
         (cache t))
-  (i/with-lexical-bindings (get-list-fn cb cache)
+  (imakado-with-lexical-bindings (get-list-fn cb cache)
     (lexical-let* ((lst (cond
                          (cache (funcall get-list-fn))
                          (t nil)))
                    (c -1))
-      (i/fn ()
+      (imakado-fn ()
         (and (not cache)
              (setq lst (funcall get-list-fn)))
         (and (>= (incf c) (length lst))
              (setq c 0))
-        (i/aand (nth c lst)
+        (imakado-aand (nth c lst)
               (funcall cb it))))))
 
-(defmacro i/define-cycle-list-function (name &rest args)
+
+(defmacro imakado-define-cycle-list-function (name &rest args)
   (declare (debug t))
   `(progn
      (defvar ,name nil)
-     (setq ,name (i/cycle-list-gen ,@args))
+     (setq ,name (imakado-cycle-list-gen ,@args))
      (defun ,name ()
        (funcall ,name))))
 
-(defsubst i/fast-pp-alist (alist)
+(defsubst imakado-fast-pp-alist (alist)
   (when alist
     ;(assert (and (consp alist) (consp (car alist))))
-    (i/with-point-buffer (format "%S" alist)
+    (imakado-with-point-buffer (format "%S" alist)
       (down-list)
       (loop while (ignore-errors (forward-sexp)
                                  t)
@@ -1895,51 +1904,51 @@ This modifies PLIST."
 
 
 
-(defvar i/enable-font-lock nil)
-(defun i/cl-function-syms ()
+(defvar imakado-enable-font-lock nil)
+(defun imakado-cl-function-syms ()
   (loop for sym being the symbols
-        when (i/aand (first (plist-get (symbol-plist sym)
+        when (imakado-aand (first (plist-get (symbol-plist sym)
                                      'autoload))
-                   (i/=~ (rx bol "cl" (or eol "-")
+                   (imakado-=~ (rx bol "cl" (or eol "-")
                            ) it))
         collect sym))
 
 
-(defmacro* i/remove-if-any-match (re seqs &rest args)
-  `(i/remif (i/fn (i/any-match ,re _)) ,seqs ,@args))
+(defmacro* imakado-remove-if-any-match (re seqs &rest args)
+  `(imakado-remif (imakado-fn (imakado-any-match ,re _)) ,seqs ,@args))
 
 
 ;; Todo
-(defun i/remove-if-some-match (re seqs)
-  (i/remove-if (lambda (s) (i/any-match re s)) seqs))
+(defun imakado-remove-if-some-match (re seqs)
+  (imakado-remove-if (lambda (s) (imakado-any-match re s)) seqs))
 
-(defmacro* i/remove-if-not-any-match (re seqs &rest args)
-  `(i/!remif (i/fn (i/any-match ,re _)) ,seqs ,@args))
+(defmacro* imakado-remove-if-not-any-match (re seqs &rest args)
+  `(imakado-!remif (imakado-fn (imakado-any-match ,re _)) ,seqs ,@args))
 
 ; Todo
-(defun i/remove-if-not-some-match (re seqs)
-  (i/remove-if-not (lambda (s) (i/any-match re s)) seqs))
+(defun imakado-remove-if-not-some-match (re seqs)
+  (imakado-remove-if-not (lambda (s) (imakado-any-match re s)) seqs))
 
-(defsubst* i/trim (s)
+(defsubst* imakado-trim (s)
   "Remove whitespace at beginning and end of string."
-  (i/aand (or (i/=~ "\\`[ \t\n\r]+" s
+  (imakado-aand (or (imakado-=~ "\\`[ \t\n\r]+" s
                 ($sub "" 0 :fixedcase t :literal-string t))
               s)
-          (or (i/=~ "[ \t\n\r]+\\'" it
+          (or (imakado-=~ "[ \t\n\r]+\\'" it
                 ($sub "" 0 :fixedcase t :literal-string t))
               it)
           it))
 
-(defsubst* i/insert-each-line (los)
+(defsubst* imakado-insert-each-line (los)
   (insert (mapconcat 'identity los "\n")))
 
-(defun* i/directory-files-recursively
+(defun* imakado-directory-files-recursively
     (regexp &optional directory type (deep nil) &key (internal-current-deep 0))
   (flet ((any-match
           (regexp-or-regexps file-name)
           (when regexp-or-regexps
             (let ((regexps (if (listp regexp-or-regexps) regexp-or-regexps (list regexp-or-regexps))))
-              (i/some
+              (imakado-some
                (lambda (re)
                  (string-match re file-name))
                regexps))))
@@ -1953,7 +1962,7 @@ This modifies PLIST."
                          ((d dir directory) 'file-directory-p)
                          ((f file) 'file-regular-p)
                          (otherwise 'identity)))
-             (files (i/remove-if
+             (files (imakado-remove-if
                      (lambda (s)
                        (string-match (rx bol ".")
                                      (file-name-nondirectory s)))
@@ -1964,13 +1973,13 @@ This modifies PLIST."
                         (any-match regexps (file-name-nondirectory file)))
               collect file into ret
               when (file-directory-p file)
-              nconc (i/directory-files-recursively regexp file type deep
+              nconc (imakado-directory-files-recursively regexp file type deep
                                                    :internal-current-deep (1+ internal-current-deep)) into ret
               finally return ret)))))
 
-(defun i/call-process-to-string (program &rest args)
+(defun imakado-call-process-to-string (program &rest args)
   (with-temp-buffer
-    (print args (create-file-buffer "i/call-process-to-string args"))
+    (print args (create-file-buffer "imakado-call-process-to-string args"))
     (apply 'call-process program nil t nil args)
     (buffer-string)))
 
@@ -1978,7 +1987,7 @@ This modifies PLIST."
 (eval-when-compile
   (require 'url-util))
 
-(defsubst* i/http-hexify-string (string &optional (encoding 'utf-8))
+(defsubst* imakado-http-hexify-string (string &optional (encoding 'utf-8))
   (mapconcat
    (lambda (byte)
      (if (memq byte url-unreserved-chars)
@@ -1989,21 +1998,21 @@ This modifies PLIST."
      string)
    ""))
 
-(defsubst* i/http-hexify-region (s e)
+(defsubst* imakado-http-hexify-region (s e)
   (interactive "r")
-  (i/replace-region-aux
+  (imakado-replace-region-aux
    s e
    (lambda (str) 
-     (i/http-hexify-string str))))
+     (imakado-http-hexify-string str))))
 
-(defsubst* i/escape-html-region (s e)
+(defsubst* imakado-escape-html-region (s e)
   (interactive "r")
-  (i/replace-region-aux
+  (imakado-replace-region-aux
    s e
    (lambda (str) 
-     (i/escape-html str))))
+     (imakado-escape-html str))))
 
-(defun* i/http-build-query (params &optional (encoding 'utf-8))
+(defun* imakado-http-build-query (params &optional (encoding 'utf-8))
   (let ((ret (loop for (k . v) in params
                    for k = (etypecase k
                              (symbol (symbol-name k))
@@ -2016,11 +2025,11 @@ This modifies PLIST."
                    nconc
                    (etypecase v
                      (list (loop for v in v
-                                 collect (mapconcat 'i/http-hexify-string (list k v) "=")))
-                     (string (list (mapconcat 'i/http-hexify-string (list k v) "="))))
+                                 collect (mapconcat 'imakado-http-hexify-string (list k v) "=")))
+                     (string (list (mapconcat 'imakado-http-hexify-string (list k v) "="))))
                    )))
     (mapconcat 'identity ret "&")))
-(defvar i/escape-html-table
+(defvar imakado-escape-html-table
   '(
     ("&" . "&amp;")
     (">" . "&gt;")
@@ -2029,20 +2038,20 @@ This modifies PLIST."
     ("'" . "&#39;")
     ))
 
-(defvar i/escape-html-re
+(defvar imakado-escape-html-re
   (rx (group (or "&" ">" "<" "\"" "'"))))
 
 
-(defun i/escape-html (str)
-  (i/with-point-buffer str
+(defun imakado-escape-html (str)
+  (imakado-with-point-buffer str
     (goto-char (point-min))
-    (loop while (re-search-forward i/escape-html-re nil t)
-          do (replace-match (assoc-default (match-string 1) i/escape-html-table))
+    (loop while (re-search-forward imakado-escape-html-re nil t)
+          do (replace-match (assoc-default (match-string 1) imakado-escape-html-table))
           finally return (buffer-substring-no-properties (point-min) (point-max)))))
 
-;; (i/escape-html "><&&'=\"&&")
+;; (imakado-escape-html "><&&'=\"&&")
 ;;;; Buffer Utils
-(defsubst* i/collect-matches
+(defsubst* imakado-collect-matches
   (re &optional (count 0) (match-string-fn 'match-string)
       (point-min (point-min)) (point-max (point-max)))
   (save-excursion
@@ -2051,20 +2060,20 @@ This modifies PLIST."
           collect (funcall match-string-fn count))))
 
 ;;;; Mode
-(defun i/set-minor-mode-mode-line (minor-mode str)
+(defun imakado-set-minor-mode-mode-line (minor-mode str)
   (when (and (boundp 'minor-mode)
              (assq 'minor-mode minor-mode-alist))
     (setcar (cdr (assq 'minor-mode minor-mode-alist)) str)))
 
 ;;;; XXX
-(defsubst* i/get-buffers-by-regexp (regexp)
+(defsubst* imakado-get-buffers-by-regexp (regexp)
   (loop for b being the buffers
         for bn = (buffer-name b)
-        when (i/any-match regexp bn)
+        when (imakado-any-match regexp bn)
         collect b))
 
 ;;;; Utility functions
-(defun i/remove-rassoc (value alist)
+(defun imakado-remove-rassoc (value alist)
   "Delete by side effect any elements of ALIST whose cdr is `equal' to VALUE.
 The modified ALIST is returned.  If the first member of ALIST has a car
 that is `equal' to VALUE, there is no way to remove it by side effect;
@@ -2086,50 +2095,50 @@ the value of `foo'."
                   tail (cdr tail))))))
   alist)
 
-(defun* i/assoc-remove-all (elem alist &key (test (lambda (elem _) (equal elem _))))
+(defun* imakado-assoc-remove-all (elem alist &key (test (lambda (elem _) (equal elem _))))
   (loop for dlst in alist
         for (key . val) = dlst
         unless (funcall test elem key)
         collect dlst))
 
-(defun* i/assoc-remove-keys (elems alist &key (test (lambda (elem _) (equal elem _))))
+(defun* imakado-assoc-remove-keys (elems alist &key (test (lambda (elem _) (equal elem _))))
   (loop for dlst in alist
         for (key . val) = dlst
         unless (member key elems)
         collect dlst))
 
-(defun* i/assoc-remove-regexp (regexp alist)
-  (i/assoc-remove-all regexp alist
+(defun* imakado-assoc-remove-regexp (regexp alist)
+  (imakado-assoc-remove-all regexp alist
                       :test (lambda (re elem)
-                              (i/any-match (i/make-list re) elem))))
-(defun* i/assq-remove-all (key alist)
-  (i/assoc-remove-all key alist
+                              (imakado-any-match (imakado-make-list re) elem))))
+(defun* imakado-assq-remove-all (key alist)
+  (imakado-assoc-remove-all key alist
                       :test (lambda (key elem)
                               (eq key elem))))
 ;;;; Time Utils
 
 ;;;; Markdown
-(defun i/markdown->html (str-or-buffer)
+(defun imakado-markdown->html (str-or-buffer)
   (let ((cmd "Markdown.pl"))
     (assert (executable-find cmd) t "Cant find %s. Please install Text::Markdown")
     (let ((s (etypecase str-or-buffer
                (string str-or-buffer)
                (buffer (with-current-buffer str-or-buffer
                          (buffer-string))))))
-      (i/do-temp-file (tempfile s)
-        (i/call-process-to-string cmd
+      (imakado-do-temp-file (tempfile s)
+        (imakado-call-process-to-string cmd
                                   tempfile)))))
 
-(defun i/markdown->html-region (s e)
+(defun imakado-markdown->html-region (s e)
   (interactive "r")
   (let ((cmd "Markdown.pl"))
     (assert (executable-find cmd) t "Cant find %s. Please install Text::Markdown")
-    (i/do-temp-file (tempfile (buffer-substring s e))
-      (i/call-process-to-string cmd
+    (imakado-do-temp-file (tempfile (buffer-substring s e))
+      (imakado-call-process-to-string cmd
                                 tempfile))))
 
 
-(defvar i/markdown-extra-wrapper-program
+(defvar imakado-markdown-extra-wrapper-program
   "\
 \<?php
 set_include_path(get_include_path().PATH_SEPARATOR.\"/Applications\");
@@ -2140,78 +2149,78 @@ $html=Markdown($markdown);
 echo($html);
 ?>
 ")
-(defvar i/markdown-extra-path nil)
+(defvar imakado-markdown-extra-path nil)
 
-(defun i/markdown-extra->html (str-or-buffer)
+(defun imakado-markdown-extra->html (str-or-buffer)
   (let ((s (etypecase str-or-buffer
              (string str-or-buffer)
              (buffer (with-current-buffer str-or-buffer
                        (buffer-string))))))
-    (i/do-temp-file (wrapper-cmd i/markdown-extra-wrapper-program)
-      (i/do-temp-file (tempfile s)
-        (let ((default-directory i/markdown-extra-path))
-          (i/call-process-to-string "php"
+    (imakado-do-temp-file (wrapper-cmd imakado-markdown-extra-wrapper-program)
+      (imakado-do-temp-file (tempfile s)
+        (let ((default-directory imakado-markdown-extra-path))
+          (imakado-call-process-to-string "php"
                                     wrapper-cmd
                                     tempfile))))))
 
 
 
-(defun i/markdown-extra->html-region (s e)
+(defun imakado-markdown-extra->html-region (s e)
   (interactive "r")
-  (i/markdown-extra->html (buffer-substring s e)))
+  (imakado-markdown-extra->html (buffer-substring s e)))
 
 
-(defun i/pandoc-markdown-extra->html (str-or-buffer)
+(defun imakado-pandoc-markdown-extra->html (str-or-buffer)
   (let ((s (etypecase str-or-buffer
              (string str-or-buffer)
              (buffer (with-current-buffer str-or-buffer
                        (buffer-string))))))
-    (i/do-temp-file (wrapper-cmd i/markdown-extra-wrapper-program)
-      (i/do-temp-file (tempfile s)
-        (let ((default-directory i/markdown-extra-path))
-          (i/call-process-to-string "pandoc"
+    (imakado-do-temp-file (wrapper-cmd imakado-markdown-extra-wrapper-program)
+      (imakado-do-temp-file (tempfile s)
+        (let ((default-directory imakado-markdown-extra-path))
+          (imakado-call-process-to-string "pandoc"
                                     "-f"
                                     "markdown_phpextra"
                                     "-t"
                                     "html"
                                     tempfile))))))
-(defun i/pandoc-markdown->html-region (s e)
+(defun imakado-pandoc-markdown->html-region (s e)
   (interactive "r")
-  (let ((str (i/pandoc-markdown-extra->html (buffer-substring s e))))
+  (let ((str (imakado-pandoc-markdown-extra->html (buffer-substring s e))))
     (delete-region s e)
     (insert str)))
 
 
-(defun i/pandoc-html->markdown (str-or-buffer)
+(defun imakado-pandoc-html->markdown (str-or-buffer)
   (let ((s (etypecase str-or-buffer
              (string str-or-buffer)
              (buffer (with-current-buffer str-or-buffer
                        (buffer-string))))))
-      (i/do-temp-file (tempfile s)
-        (let ((default-directory i/markdown-extra-path))
-          (i/call-process-to-string "pandoc"
+      (imakado-do-temp-file (tempfile s)
+        (let ((default-directory imakado-markdown-extra-path))
+          (imakado-call-process-to-string "pandoc"
                                     "-f"
                                     "html"
                                     "-t"
                                     "markdown_phpextra"
                                     tempfile)))))
 
-(defun i/pandoc-html->markdown-region (s e)
+(defun imakado-pandoc-html->markdown-region (s e)
   (interactive "r")
-  (let ((str (i/pandoc-html->markdown (buffer-substring s e))))
+  (let ((str (imakado-pandoc-html->markdown (buffer-substring s e))))
     (delete-region s e)
     (insert str)))
 
 
 
 ;;;; Datetime
-(defstruct (i/$datetime
+(defstruct (imakado-$datetime
             (:constructor nil)
-            (:constructor i/--make-$datetime)
-            (:copier i/$datetime-clone))
+            (:constructor imakado---make-$datetime)
+            (:copier imakado-$datetime-clone))
   time)
 
-(defsubst* i/make-$datetime
+(defsubst* imakado-make-$datetime
   (&key
    year
    (month 1)
@@ -2220,7 +2229,7 @@ echo($html);
    (minute 0)
    (second 0))
   (assert (integerp year) t "\
-Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
+Mandatory parameter :year missing in call to `imakado-make-$datetime'. year is %s")
   (check-type month (integer 1 12))
   (check-type day (integer 1 31))
   (check-type hour (integer 0 23))
@@ -2228,29 +2237,29 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
   (check-type second (integer 0 61))
   (let* ((date (list second minute hour day month year))
          (time (apply 'encode-time date)))
-    (i/--make-$datetime
+    (imakado---make-$datetime
      :time time)))
 
-(defun i/$datetime-now ()
-  (i/--make-$datetime
+(defun imakado-$datetime-now ()
+  (imakado---make-$datetime
    :time (current-time)))
 
-(defsubst* i/$datetime-from-time (time)
+(defsubst* imakado-$datetime-from-time (time)
   (assert (numberp (first time)))
-  (i/--make-$datetime
+  (imakado---make-$datetime
    :time time))
 
-(defsubst* i/$datetime-from-epoch (time)
-  (i/$datetime-from-time
+(defsubst* imakado-$datetime-from-epoch (time)
+  (imakado-$datetime-from-time
    (seconds-to-time time)))
 
-(defsubst i/pretty-$datetime ($datetime)
-  (check-type $datetime i/$datetime)
+(defsubst imakado-pretty-$datetime ($datetime)
+  (check-type $datetime imakado-$datetime)
   (format-time-string
-   "%Y年%m月%d日%H時%M分" (i/$datetime-time $datetime)))
+   "%Y年%m月%d日%H時%M分" (imakado-$datetime-time $datetime)))
 
 (eval-when-compile
-  (defvar i/--$datetime-generate-simple-getters-map
+  (defvar imakado---$datetime-generate-simple-getters-map
     '(
       (year . "%Y")
       (month . "%m")
@@ -2261,9 +2270,9 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
       (second . "%S")
       ((day-of-year doy) . "%j")
       ))
-  (defmacro i/--$datetime-generate-simple-getters ()
+  (defmacro imakado---$datetime-generate-simple-getters ()
     (let ((flatten-map
-           (loop for (name . fm-str) in i/--$datetime-generate-simple-getters-map
+           (loop for (name . fm-str) in imakado---$datetime-generate-simple-getters-map
                  if (consp name)
                  append (loop for n in name
                               collect (cons n fm-str))
@@ -2271,28 +2280,28 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
                  collect (cons name fm-str))))
       `(progn
          ,@(loop for (fn-name . fm-str) in flatten-map
-                 for full-fn-name-sym = (intern (format "i/$datetime-%s" fn-name))
+                 for full-fn-name-sym = (intern (format "imakado-$datetime-%s" fn-name))
                  collect `(defsubst* ,full-fn-name-sym ($datetime)
-                            (check-type $datetime i/$datetime)
+                            (check-type $datetime imakado-$datetime)
                             (string-to-number
                              (format-time-string ,fm-str
-                                                 (i/$datetime-time $datetime)))))))))
-;; define i/$datetime-year, i/$datetime-hour, etc...
-(i/--$datetime-generate-simple-getters)
+                                                 (imakado-$datetime-time $datetime)))))))))
+;; define imakado-$datetime-year, imakado-$datetime-hour, etc...
+(imakado---$datetime-generate-simple-getters)
 
-(defsubst* i/$datetime-ymd ($datetime &optional (separator "/"))
-  (check-type $datetime i/$datetime)
+(defsubst* imakado-$datetime-ymd ($datetime &optional (separator "/"))
+  (check-type $datetime imakado-$datetime)
   (check-type separator string)
   (mapconcat 'identity
              (mapcar 'number-to-string
-                     (list (i/$datetime-year $datetime)
-                           (i/$datetime-month $datetime)
-                           (i/$datetime-day $datetime)))
+                     (list (imakado-$datetime-year $datetime)
+                           (imakado-$datetime-month $datetime)
+                           (imakado-$datetime-day $datetime)))
              separator))
 
-(defsubst* i/$datetime-leap-year-p ($datetime)
-  (check-type $datetime i/$datetime)
-  (let ((year (i/$datetime-year $datetime)))
+(defsubst* imakado-$datetime-leap-year-p ($datetime)
+  (check-type $datetime imakado-$datetime)
+  (let ((year (imakado-$datetime-year $datetime)))
     (or (and (zerop (% year 4))
              (not (zerop (% year 100))))
         (zerop (% year 400)))))
@@ -2300,15 +2309,15 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
   (when (fboundp 'expectations)
     (expectations
       (expect t
-        (i/$datetime-leap-year-p
-         (i/make-$datetime :year 2000)))
+        (imakado-$datetime-leap-year-p
+         (imakado-make-$datetime :year 2000)))
       (expect nil
-        (i/$datetime-leap-year-p
-         (i/make-$datetime :year 2001)))
+        (imakado-$datetime-leap-year-p
+         (imakado-make-$datetime :year 2001)))
       )))
 
 ;;;; add, subtract
-(defsubst* i/$datetime-add
+(defsubst* imakado-$datetime-add
   ($datetime
    &key
    year
@@ -2317,8 +2326,8 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
    hour
    minute
    second)
-  (check-type $datetime i/$datetime)
-  (let* ((time (i/$datetime-time $datetime))
+  (check-type $datetime imakado-$datetime)
+  (let* ((time (imakado-$datetime-time $datetime))
          (date (decode-time time)))
     (and second
          (setf (nth 0 date)
@@ -2338,11 +2347,11 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
     (and year
          (setf (nth 5 date)
                (+ (nth 5 date) year)))
-    (setf (i/$datetime-time $datetime)
+    (setf (imakado-$datetime-time $datetime)
           (apply 'encode-time date))
     $datetime))
 
-(defsubst* i/$datetime-subtract-keys
+(defsubst* imakado-$datetime-subtract-keys
   ($datetime
    &key
    year
@@ -2351,8 +2360,8 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
    hour
    minute
    second)
-  (check-type $datetime i/$datetime)
-  (let* ((time (i/$datetime-time $datetime))
+  (check-type $datetime imakado-$datetime)
+  (let* ((time (imakado-$datetime-time $datetime))
          (date (decode-time time)))
     (and second
          (setf (nth 0 date)
@@ -2372,42 +2381,42 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
     (and year
          (setf (nth 5 date)
                (- (nth 5 date) year)))
-    (setf (i/$datetime-time $datetime)
+    (setf (imakado-$datetime-time $datetime)
           (apply 'encode-time date))
     $datetime))
 
-(defstruct (i/$duration
+(defstruct (imakado-$duration
             (:constructor nil)
-            (:constructor i/--make-$duration))
+            (:constructor imakado---make-$duration))
   difference-float)
 
-(defsubst* i/$datetime-subtract-op ($datetime1 $datetime2)
-  (check-type $datetime1 i/$datetime)
-  (check-type $datetime2 i/$datetime)
-  (i/--make-$duration
+(defsubst* imakado-$datetime-subtract-op ($datetime1 $datetime2)
+  (check-type $datetime1 imakado-$datetime)
+  (check-type $datetime2 imakado-$datetime)
+  (imakado---make-$duration
    :difference-float
-   (- (float-time (i/$datetime-time $datetime1))
-      (float-time (i/$datetime-time $datetime2)))))
+   (- (float-time (imakado-$datetime-time $datetime1))
+      (float-time (imakado-$datetime-time $datetime2)))))
 
-(defun i/$datetime-subtract (&rest args)
+(defun imakado-$datetime-subtract (&rest args)
   (cond
-   ((i/$datetime-p (second args))
-    (i/$datetime-subtract-op (first args) (second args)))
+   ((imakado-$datetime-p (second args))
+    (imakado-$datetime-subtract-op (first args) (second args)))
    (t
-    (apply 'i/$datetime-subtract-keys args))))
+    (apply 'imakado-$datetime-subtract-keys args))))
 
-(defsubst* i/$datetime-compare-aux (op $datetime1 $datetime2)
-  (check-type $datetime1 i/$datetime)
-  (check-type $datetime2 i/$datetime)
+(defsubst* imakado-$datetime-compare-aux (op $datetime1 $datetime2)
+  (check-type $datetime1 imakado-$datetime)
+  (check-type $datetime2 imakado-$datetime)
   (funcall op
-           (float-time (i/$datetime-time $datetime1))
-           (float-time (i/$datetime-time $datetime2))))
-(defsubst* i/$datetime-< ($d1 $d2)
-  (i/$datetime-compare-aux '< $d1 $d2))
-(defsubst* i/$datetime-> ($d1 $d2)
-  (i/$datetime-compare-aux '> $d1 $d2))
+           (float-time (imakado-$datetime-time $datetime1))
+           (float-time (imakado-$datetime-time $datetime2))))
+(defsubst* imakado-$datetime-< ($d1 $d2)
+  (imakado-$datetime-compare-aux '< $d1 $d2))
+(defsubst* imakado-$datetime-> ($d1 $d2)
+  (imakado-$datetime-compare-aux '> $d1 $d2))
 
-(defsubst* i/$duration-pretty-string-aux (diff-seconds)
+(defsubst* imakado-$duration-pretty-string-aux (diff-seconds)
   (cond
    ((< diff-seconds 60)
     (values 'second (round diff-seconds)))
@@ -2420,19 +2429,19 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
    (t
     nil)))
 
-(defsubst* i/$duration-pretty-string-japanese ($duration)
-  (check-type $duration i/$duration)
-  (i/acond
-    ((i/$duration-pretty-string-aux (i/$duration-difference-float
+(defsubst* imakado-$duration-pretty-string-japanese ($duration)
+  (check-type $duration imakado-$duration)
+  (imakado-acond
+    ((imakado-$duration-pretty-string-aux (imakado-$duration-difference-float
                                         $duration))
-     (dbind (tag val) it
+     (imakado-dbind (tag val) it
        (ecase tag
          (second (format "%s秒" val))
          (minute (format "%s分" val))
          (hour (format "%s時間" val))
          (day (format "%s日" val)))))
     (t (format "%s日" (round
-                       (/ (i/$duration-difference-float
+                       (/ (imakado-$duration-difference-float
                            $duration)
                           86400))))))
 
@@ -2440,80 +2449,80 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/$datetime-< +++++")
+      (desc "+++++ imakado-$datetime-< +++++")
       (expect nil
-        (i/$datetime-<
-         (i/make-$datetime :year 2012
+        (imakado-$datetime-<
+         (imakado-make-$datetime :year 2012
                               :month 7
                               :day 14)
-         (i/make-$datetime :year 2012
+         (imakado-make-$datetime :year 2012
                               :month 7
                               :day 12)))
 
-      (desc "+++++ i/$datetime-> +++++")
+      (desc "+++++ imakado-$datetime-> +++++")
       (expect t
-        (i/$datetime->
-         (i/make-$datetime :year 2012
+        (imakado-$datetime->
+         (imakado-make-$datetime :year 2012
                               :month 7
                               :day 14)
-         (i/make-$datetime :year 2012
+         (imakado-make-$datetime :year 2012
                               :month 7
                               :day 12)))
 
-      (desc "+++++ i/$datetime-subtract +++++")
+      (desc "+++++ imakado-$datetime-subtract +++++")
       (expect "2日"
-        (i/$duration-pretty-string-japanese
-         (i/$datetime-subtract
-          (i/make-$datetime :year 2012
+        (imakado-$duration-pretty-string-japanese
+         (imakado-$datetime-subtract
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14)
-          (i/make-$datetime :year 2012
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 12))))
       (expect "33日"
-        (i/$duration-pretty-string-japanese
-         (i/$datetime-subtract
-          (i/make-$datetime :year 2012
+        (imakado-$duration-pretty-string-japanese
+         (imakado-$datetime-subtract
+          (imakado-make-$datetime :year 2012
                                :month 8
                                :day 14)
-          (i/make-$datetime :year 2012
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 12))))
       (expect "2時間"
-        (i/$duration-pretty-string-japanese
-         (i/$datetime-subtract
-          (i/make-$datetime :year 2012
+        (imakado-$duration-pretty-string-japanese
+         (imakado-$datetime-subtract
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14
                                :hour 18
                                :minute 0)
-          (i/make-$datetime :year 2012
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14
                                :hour 16
                                :minute 30))))
       (expect "30分"
-        (i/$duration-pretty-string-japanese
-         (i/$datetime-subtract
-          (i/make-$datetime :year 2012
+        (imakado-$duration-pretty-string-japanese
+         (imakado-$datetime-subtract
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14
                                :hour 18
                                :minute 0)
-          (i/make-$datetime :year 2012
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14
                                :hour 17
                                :minute 30))))
       (expect "30秒"
-        (i/$duration-pretty-string-japanese
-         (i/$datetime-subtract
-          (i/make-$datetime :year 2012
+        (imakado-$duration-pretty-string-japanese
+         (imakado-$datetime-subtract
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14
                                :hour 18
                                :minute 0)
-          (i/make-$datetime :year 2012
+          (imakado-make-$datetime :year 2012
                                :month 7
                                :day 14
                                :hour 17
@@ -2524,38 +2533,38 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/$datetime-add +++++")
+      (desc "+++++ imakado-$datetime-add +++++")
       (expect "2020年05月12日01時53分"
         (with-stub
           (stub current-time => '(19436 11933 218000))
-          (let ((now (i/$datetime-now)))
-            (i/$datetime-add now
+          (let ((now (imakado-$datetime-now)))
+            (imakado-$datetime-add now
                                 :year 10)
-            (i/$datetime-subtract now
+            (imakado-$datetime-subtract now
                                      :day 2)
-            (i/pretty-$datetime now))))
+            (imakado-pretty-$datetime now))))
 
       (expect "2010年05月15日01時53分"
         (with-stub
           (stub current-time => '(19436 11933 218000))
-          (let ((now (i/$datetime-now)))
-            (i/pretty-$datetime now) ;;"2010年05月14日01時53分"
-            (i/$datetime-add now
+          (let ((now (imakado-$datetime-now)))
+            (imakado-pretty-$datetime now) ;;"2010年05月14日01時53分"
+            (imakado-$datetime-add now
                                 :day 1)
-            (i/pretty-$datetime now)))
+            (imakado-pretty-$datetime now)))
         )
 
-      (desc "+++++ i/$datetime-ymd +++++")
+      (desc "+++++ imakado-$datetime-ymd +++++")
       (expect "2010/5/14"
         (with-stub
           (stub current-time => '(19436 11933 218000))
-          (let ((now (i/$datetime-now)))
-            (i/$datetime-ymd now))))
+          (let ((now (imakado-$datetime-now)))
+            (imakado-$datetime-ymd now))))
       (expect "2010+5+14"
         (with-stub
           (stub current-time => '(19436 11933 218000))
-          (let ((now (i/$datetime-now)))
-            (i/$datetime-ymd now "+"))))
+          (let ((now (imakado-$datetime-now)))
+            (imakado-$datetime-ymd now "+"))))
 
       )))
 
@@ -2568,102 +2577,102 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/make-$datetime +++++")
+      (desc "+++++ imakado-make-$datetime +++++")
       (expect (error)
-        (i/make-$datetime))
+        (imakado-make-$datetime))
 
-      (desc "+++++ i/$datetime-now +++++")
+      (desc "+++++ imakado-$datetime-now +++++")
       (expect t
-        (i/$datetime-p (i/$datetime-now)))
+        (imakado-$datetime-p (imakado-$datetime-now)))
 
-      (desc "+++++ i/$datetime-year +++++")
+      (desc "+++++ imakado-$datetime-year +++++")
       (expect (error)
-        (i/$datetime-year
+        (imakado-$datetime-year
          'not-$datetime))
       (expect 2000
-        (i/$datetime-year
-         (i/make-$datetime :year 2000)))
+        (imakado-$datetime-year
+         (imakado-make-$datetime :year 2000)))
 
-      (desc "+++++ i/$datetime-month +++++")
+      (desc "+++++ imakado-$datetime-month +++++")
       (expect 12
-        (i/$datetime-month
-         (i/make-$datetime :year 2000
+        (imakado-$datetime-month
+         (imakado-make-$datetime :year 2000
                               :month 12)))
 
-      (desc "+++++ i/$datetime-day +++++")
+      (desc "+++++ imakado-$datetime-day +++++")
       (expect 30
-        (i/$datetime-day
-         (i/make-$datetime :year 2000
+        (imakado-$datetime-day
+         (imakado-make-$datetime :year 2000
                               :month 12
                               :day 30)))
       (expect 30
-        (i/$datetime-day-of-month
-         (i/make-$datetime :year 2000
+        (imakado-$datetime-day-of-month
+         (imakado-make-$datetime :year 2000
                               :month 12
                               :day 30)))
       (expect 30
-        (i/$datetime-mday
-         (i/make-$datetime :year 2000
+        (imakado-$datetime-mday
+         (imakado-make-$datetime :year 2000
                               :month 12
                               :day 30)))
 
-      (desc "+++++ i/$datetime-day-of-week +++++")
+      (desc "+++++ imakado-$datetime-day-of-week +++++")
       (desc "Note, Monday is 1")
       (expect 1
-        (i/$datetime-day-of-week
-         (i/make-$datetime :year 2010
+        (imakado-$datetime-day-of-week
+         (imakado-make-$datetime :year 2010
                               :month 5
                               :day 10)))
 
-      (desc "+++++ i/$datetime-hour +++++")
+      (desc "+++++ imakado-$datetime-hour +++++")
       (expect 9
-        (i/$datetime-hour
-         (i/make-$datetime :year 2010
+        (imakado-$datetime-hour
+         (imakado-make-$datetime :year 2010
                               :month 5
                               :day 10
                               :hour 9)))
 
-      (desc "+++++ i/$datetime-minute +++++")
+      (desc "+++++ imakado-$datetime-minute +++++")
       (expect 7
-        (i/$datetime-minute
-         (i/make-$datetime :year 2010
+        (imakado-$datetime-minute
+         (imakado-make-$datetime :year 2010
                               :month 5
                               :day 10
                               :hour 9
                               :minute 7)))
 
-      (desc "+++++ i/$datetime-second +++++")
+      (desc "+++++ imakado-$datetime-second +++++")
       (expect 59
-        (i/$datetime-second
-         (i/make-$datetime :year 2010
+        (imakado-$datetime-second
+         (imakado-make-$datetime :year 2010
                               :month 5
                               :day 10
                               :hour 9
                               :minute 7
                               :second 59)))
 
-      (desc "+++++ i/$datetime-day-of-year +++++")
+      (desc "+++++ imakado-$datetime-day-of-year +++++")
       (expect 365
-        (i/$datetime-day-of-year
-         (i/make-$datetime :year 2010
+        (imakado-$datetime-day-of-year
+         (imakado-make-$datetime :year 2010
                               :month 12
                               :day 31)))
       (desc "leap year")
       (expect 366
-        (i/$datetime-day-of-year
-         (i/make-$datetime :year 2000
+        (imakado-$datetime-day-of-year
+         (imakado-make-$datetime :year 2000
                               :month 12
                               :day 31)))
 
-      (desc "+++++ i/pretty-$datetime +++++")
+      (desc "+++++ imakado-pretty-$datetime +++++")
       (expect (error)
-        (i/pretty-$datetime nil))
+        (imakado-pretty-$datetime nil))
       (expect "2000年01月01日00時00分"
-        (i/pretty-$datetime
-         (i/make-$datetime :year 2000)))
+        (imakado-pretty-$datetime
+         (imakado-make-$datetime :year 2000)))
       )))
 
-(defsubst* i/days-ago-time (n time)
+(defsubst* imakado-days-ago-time (n time)
   (check-type n integer)
   (let ((date (decode-time time)))
     (setf (nth 3 date)
@@ -2675,7 +2684,7 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
     (expectations
       (desc "+++++ Datetime +++++")
       (let* ((test-time '(19423 243 265000))
-             (7-days-ago-time (i/days-ago-time 7 test-time))
+             (7-days-ago-time (imakado-days-ago-time 7 test-time))
              (6-days-ago-time '(19415 6131))
              (8-days-ago-time '(19412 29939)))
         (assert (equal "05/04/10" (format-time-string "%D" test-time)))
@@ -2686,7 +2695,7 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
          (eq nil (time-less-p 7-days-ago-time 8-days-ago-time))))
       )))
 
-(defun i/pretty-time-japanese (time)
+(defun imakado-pretty-time-japanese (time)
   (assert (numberp (first time)))
   (format-time-string
    "%Y年%m月%d日%H時%M分" time))
@@ -2694,52 +2703,52 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/pretty-time-japanese +++++")
+      (desc "+++++ imakado-pretty-time-japanese +++++")
       (with-stub
         (stub current-time => '(19435 42791 41987))
-        (i/pretty-time-japanese (current-time)))
+        (imakado-pretty-time-japanese (current-time)))
       )))
 
 
 ;;;; symlink
-(defun* i/get-symlink-target-recursively (f &optional (deep-limit 10))
+(defun* imakado-get-symlink-target-recursively (f &optional (deep-limit 10))
   (unless (= deep-limit 0)
-    (i/aif (file-symlink-p f)
-        (i/get-symlink-target-recursively it (1- deep-limit))
+    (imakado-aif (file-symlink-p f)
+        (imakado-get-symlink-target-recursively it (1- deep-limit))
       f)))
 
-(defun i/normalize-file-name (path)
-  (i/aand (expand-file-name path)
+(defun imakado-normalize-file-name (path)
+  (imakado-aand (expand-file-name path)
         (if (file-directory-p path)
-            (concat (i/=~ "/*$" it ($sub ""))
+            (concat (imakado-=~ "/*$" it ($sub ""))
                     "/")
-          (i/=~ "/*$" it ($sub "")))))
+          (imakado-=~ "/*$" it ($sub "")))))
 
 ;;;; Font lock support
 (defgroup imakado nil
   "imakado.el"
-  :prefix "i/"
+  :prefix "imakado-"
   :group 'convenience)
-(defface i/keyword-face
+(defface imakado-keyword-face
   '((t (:inherit font-lock-keyword-face)))
   "Face for macros are defined in imakado.el"
   :group 'imakado)
 
-(defvar i/keyword-face 'i/keyword-face
+(defvar imakado-keyword-face 'imakado-keyword-face
   "Face name to use for function names.")
 
-(defun i/font-lock-keyword-matcher2 (limit)
-  (when i/enable-font-lock
+(defun imakado-font-lock-keyword-matcher2 (limit)
+  (when imakado-enable-font-lock
     (let ((re (rx "("
-                  (group (or "i/defcacheable"
-                             "i/define-define-keymap" 
-                             "i/define-with-all-slots-struct"
-                             "i/define-with-struct-macro"
-                             "i/define-macro-aliases"
-                             "i/define-macro-alias"
-                             "i/defclass+"
-                             "i/define-defmethod"
-                             "i/define-cycle-list-function"
+                  (group (or "imakado-defcacheable"
+                             "imakado-define-define-keymap" 
+                             "imakado-define-with-all-slots-struct"
+                             "imakado-define-with-struct-macro"
+                             "imakado-define-macro-aliases"
+                             "imakado-define-macro-alias"
+                             "imakado-defclass+"
+                             "imakado-define-defmethod"
+                             "imakado-define-cycle-list-function"
                              ))
                   (+ space)
                   (group (+ (or (syntax symbol) (syntax word)))))))
@@ -2751,187 +2760,187 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 (dolist (mode '(emacs-lisp-mode lisp-interaction-mode))
   (font-lock-add-keywords
    mode
-   '((i/font-lock-keyword-matcher1
-      (1 i/keyword-face append))
-     (i/font-lock-keyword-matcher2
-      (1 i/keyword-face append)
+   '((imakado-font-lock-keyword-matcher1
+      (1 imakado-keyword-face append))
+     (imakado-font-lock-keyword-matcher2
+      (1 imakado-keyword-face append)
       (2 font-lock-function-name-face append)))))
 
 ;;;; Aliases
 
-(defun i/font-lock-keywords-1 ()
+(defun imakado-font-lock-keywords-1 ()
   (list
    "imakado-require-version"
-   "i/gensym"
-   "i/group"
-   "i/allquote"
-   "i/in-aux-test"
-   "i/flatten"
-   "i/subseq"
-   "i/remove-if"
-   "i/remove-if-not"
-   "i/acdr"
-   "acdr"
-   "i/assq-rest"
-   "i/with-gensyms"
-   "i/with-lexical-bindings"
-   "i/dirconcat"
-   "i/remif-aux"
-   "i/remif"
-   "i/!remif"
-   "i/aif"
-   "i/awhen"
-   "i/awhile"
-   "i/aand"
-   "i/acond"
-   "i/alambda"
-   "i/cond-let-aux-vars"
-   "i/cond-let-aux-binds"
-   "i/cond-let-aux-clause"
-   "i/cond-let"
-   "i/when-let"
-   "i/fn-aux-anaph-arg-syms"
-   "i/fn-aux-appear_?"
-   "i/fn-aux"
-   "i/fn"
-   "i/define-macro-alias"
-   "i/define-macro-aliases"
-   "i/cars"
-   "i/cdrs"
-   "i/cadrs"
-   "i/assoc-cdrs"
-   "i/nths"
-   "i/in"
-   "i/inq"
-   "i/in="
-   "i/join+"
-   "i/case-cond-clause-aux"
-   "i/xcase"
-   "i/xcase-clause-aux-test"
-   "i/xcase-clause-aux"
-   "i/xcase="
-   "i/with-struct"
-   "i/define-with-struct-macro"
-   "i/with-struct-all-slots-get-getters-slot?"
-   "i/with-struct-all-slots-get-all-slots"
-   "i/define-with-all-slots-struct"
-   "i/dolist-with-progress-reporter"
-   "i/with-anaphoric-match-utilities"
-   "i/=~"
-   "i/case-regexp-aux"
-   "i/case-regexp"
-   "i/match-with-temp-buffer"
-   "i/with-temp-buffer-file"
-   "i/match-with-temp-buffer-file"
-   "i/save-excursion-force"
-   "i/goto-pointmark-and-delete"
-   "i/with-point-buffer"
-   "i/memoize"
-   "i/--test-memoize-fn"
-   "i/do-temp-file"
-   "i/for-each-single-property-change"
-   "i/require-methods-aux"
-   "i/require-methods"
-   "i/with-orefs"
-   "i/require-slots"
-   "i/simple-template-parse-buffer-get-token-and-advance"
-   "i/simple-template-parse-buffer"
-   "i/simple-template-compile-aux"
-   "i/simple-template-compile"
-   "i/simple-template-buffer"
-   "i/simple-template"
-   "i/simple-template-string"
-   "i/try-these"
-   "i/rt"
-   "i/make-list"
-   "i/some"
-   "i/any-match"
-   "i/every"
-   "i/collect-matches"
-   "i/get-buffers-by-regexp"
-   "i/font-lock-keyword-matcher1"
-   "i/font-lock-keyword-matcher2"
-   "i/gensym"
-   "i/group"
-   "i/allquote"
-   "i/flatten"
-   "i/subseq"
-   "i/remove-if"
-   "i/remove-if-not"
-   "i/acdr"
-   "i/remif-aux"
-   "i/goto-pointmark-and-delete"
-   "i/simple-template-buffer"
-   "i/rt"
-   "i/make-list"
-   "i/some"
-   "i/any-match"
-   "i/every"
-   "i/collect-matches"
-   "i/get-buffers-by-regexp"
-   "i/imakado-require-version"
-   "i/acdr"
-   "i/with-gensyms"
-   "i/with-lexical-bindings"
-   "i/dirconcat"
-   "i/remif"
-   "i/!remif"
-   "i/aif"
-   "i/awhen"
-   "i/awhile"
-   "i/aand"
-   "i/acond"
-   "i/alambda"
-   "i/cond-let"
-   "i/when-let"
-   "i/fn"
-   "i/cars"
-   "i/cdrs"
-   "i/cadrs"
-   "i/assoc-cdrs"
-   "i/nths"
-   "i/in"
-   "i/inq"
-   "i/in="
-   "i/join+"
-   "i/xcase"
-   "i/xcase="
-   "i/with-struct"
-   "i/dolist-with-progress-reporter"
-   "i/with-anaphoric-match-utilities"
-   "i/=~"
-   "i/case-regexp"
-   "i/match-with-temp-buffer"
-   "i/with-temp-buffer-file"
-   "i/match-with-temp-buffer-file"
-   "i/save-excursion-force"
-   "i/with-point-buffer"
-   "i/memoize"
-   "i/do-temp-file"
-   "i/for-each-single-property-change"
-   "i/define-defmethod"
-   "i/defclass+"
-   "i/require-methods"
-   "i/with-orefs"
-   "i/require-slots"
-   "i/simple-template"
-   "i/simple-template-string"
-   "i/try-these"
-   "i/font-lock-keywords-1"
-   "i/test-macro"
+   "imakado-gensym"
+   "imakado-group"
+   "imakado-allquote"
+   "imakado-in-aux-test"
+   "imakado-flatten"
+   "imakado-subseq"
+   "imakado-remove-if"
+   "imakado-remove-if-not"
+   "imakado-acdr"
+;   "acdr"
+   "imakado-assq-rest"
+   "imakado-with-gensyms"
+   "imakado-with-lexical-bindings"
+   "imakado-dirconcat"
+   "imakado-remif-aux"
+   "imakado-remif"
+   "imakado-!remif"
+   "imakado-aif"
+   "imakado-awhen"
+   "imakado-awhile"
+   "imakado-aand"
+   "imakado-acond"
+   "imakado-alambda"
+   "imakado-cond-let-aux-vars"
+   "imakado-cond-let-aux-binds"
+   "imakado-cond-let-aux-clause"
+   "imakado-cond-let"
+   "imakado-when-let"
+   "imakado-fn-aux-anaph-arg-syms"
+   "imakado-fn-aux-appear_?"
+   "imakado-fn-aux"
+   "imakado-fn"
+   "imakado-define-macro-alias"
+   "imakado-define-macro-aliases"
+   "imakado-cars"
+   "imakado-cdrs"
+   "imakado-cadrs"
+   "imakado-assoc-cdrs"
+   "imakado-nths"
+   "imakado-in"
+   "imakado-inq"
+   "imakado-in="
+   "imakado-join+"
+   "imakado-case-cond-clause-aux"
+   "imakado-xcase"
+   "imakado-xcase-clause-aux-test"
+   "imakado-xcase-clause-aux"
+   "imakado-xcase="
+   "imakado-with-struct"
+   "imakado-define-with-struct-macro"
+   "imakado-with-struct-all-slots-get-getters-slot?"
+   "imakado-with-struct-all-slots-get-all-slots"
+   "imakado-define-with-all-slots-struct"
+   "imakado-dolist-with-progress-reporter"
+   "imakado-with-anaphoric-match-utilities"
+   "imakado-=~"
+   "imakado-case-regexp-aux"
+   "imakado-case-regexp"
+   "imakado-match-with-temp-buffer"
+   "imakado-with-temp-buffer-file"
+   "imakado-match-with-temp-buffer-file"
+   "imakado-save-excursion-force"
+   "imakado-goto-pointmark-and-delete"
+   "imakado-with-point-buffer"
+   "imakado-memoize"
+   "imakado---test-memoize-fn"
+   "imakado-do-temp-file"
+   "imakado-for-each-single-property-change"
+   "imakado-require-methods-aux"
+   "imakado-require-methods"
+   "imakado-with-orefs"
+   "imakado-require-slots"
+   "imakado-simple-template-parse-buffer-get-token-and-advance"
+   "imakado-simple-template-parse-buffer"
+   "imakado-simple-template-compile-aux"
+   "imakado-simple-template-compile"
+   "imakado-simple-template-buffer"
+   "imakado-simple-template"
+   "imakado-simple-template-string"
+   "imakado-try-these"
+   "imakado-rt"
+   "imakado-make-list"
+   "imakado-some"
+   "imakado-any-match"
+   "imakado-every"
+   "imakado-collect-matches"
+   "imakado-get-buffers-by-regexp"
+   "imakado-font-lock-keyword-matcher1"
+   "imakado-font-lock-keyword-matcher2"
+   "imakado-gensym"
+   "imakado-group"
+   "imakado-allquote"
+   "imakado-flatten"
+   "imakado-subseq"
+   "imakado-remove-if"
+   "imakado-remove-if-not"
+   "imakado-acdr"
+   "imakado-remif-aux"
+   "imakado-goto-pointmark-and-delete"
+   "imakado-simple-template-buffer"
+   "imakado-rt"
+   "imakado-make-list"
+   "imakado-some"
+   "imakado-any-match"
+   "imakado-every"
+   "imakado-collect-matches"
+   "imakado-get-buffers-by-regexp"
+   "imakado-imakado-require-version"
+   "imakado-acdr"
+   "imakado-with-gensyms"
+   "imakado-with-lexical-bindings"
+   "imakado-dirconcat"
+   "imakado-remif"
+   "imakado-!remif"
+   "imakado-aif"
+   "imakado-awhen"
+   "imakado-awhile"
+   "imakado-aand"
+   "imakado-acond"
+   "imakado-alambda"
+   "imakado-cond-let"
+   "imakado-when-let"
+   "imakado-fn"
+   "imakado-cars"
+   "imakado-cdrs"
+   "imakado-cadrs"
+   "imakado-assoc-cdrs"
+   "imakado-nths"
+   "imakado-in"
+   "imakado-inq"
+   "imakado-in="
+   "imakado-join+"
+   "imakado-xcase"
+   "imakado-xcase="
+   "imakado-with-struct"
+   "imakado-dolist-with-progress-reporter"
+   "imakado-with-anaphoric-match-utilities"
+   "imakado-=~"
+   "imakado-case-regexp"
+   "imakado-match-with-temp-buffer"
+   "imakado-with-temp-buffer-file"
+   "imakado-match-with-temp-buffer-file"
+   "imakado-save-excursion-force"
+   "imakado-with-point-buffer"
+   "imakado-memoize"
+   "imakado-do-temp-file"
+   "imakado-for-each-single-property-change"
+   "imakado-define-defmethod"
+   "imakado-defclass+"
+   "imakado-require-methods"
+   "imakado-with-orefs"
+   "imakado-require-slots"
+   "imakado-simple-template"
+   "imakado-simple-template-string"
+   "imakado-try-these"
+   "imakado-font-lock-keywords-1"
+   "imakado-test-macro"
    ))
 
-(i/defcacheable i/font-lock-keyword-matcher1-re ()
+(imakado-defcacheable imakado-font-lock-keyword-matcher1-re ()
     (rx-to-string
      `(and "("
-           (group "i/"
+           (group "imakado-"
                   (+ (or (syntax word)
                          (syntax symbol))))
            symbol-end)))
 
-(defun i/font-lock-keyword-matcher1 (limit)
-  (when i/enable-font-lock
-    (let ((re (i/font-lock-keyword-matcher1-re)))
+(defun imakado-font-lock-keyword-matcher1 (limit)
+  (when imakado-enable-font-lock
+    (let ((re (imakado-font-lock-keyword-matcher1-re)))
       (when (re-search-forward re limit t)
         (set-match-data (match-data))
         t))))
@@ -2940,39 +2949,39 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
   (when (fboundp 'expectations)
     (expectations
       (expect t
-        (i/some 'evenp (number-sequence 0 10 2)))
+        (imakado-some 'evenp (number-sequence 0 10 2)))
       (expect nil
-        (i/some 'oddp (number-sequence 0 10 2)))
+        (imakado-some 'oddp (number-sequence 0 10 2)))
       (expect t
-        (i/every 'evenp (number-sequence 0 10 2)))
+        (imakado-every 'evenp (number-sequence 0 10 2)))
       (expect nil
-        (i/every 'evenp '(2 4 5)))
+        (imakado-every 'evenp '(2 4 5)))
       )))        
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "+++++ i/try-these +++++")
+      (desc "+++++ imakado-try-these +++++")
       (expect "ok"
-        (i/try-these (error "aa")
+        (imakado-try-these (error "aa")
                    (progn "ok")
                    (error "bb")))
       (expect "ok"
-        (flet ((i/--try-these-test () (return nil)))
-          (i/try-these (i/--try-these-test)
+        (flet ((imakado---try-these-test () (return nil)))
+          (imakado-try-these (imakado---try-these-test)
                      (progn "ok")
                      (error "bb"))))
       (expect nil
         (let ((called nil))
-          (flet ((i/--try-these-test () (setq called t)))
-            (i/try-these (error "aa")
+          (flet ((imakado---try-these-test () (setq called t)))
+            (imakado-try-these (error "aa")
                        (progn "ok")
-                       (i/--try-these-test))
+                       (imakado---try-these-test))
             called)))
       (expect t
         (let ((called nil))
-          (flet ((i/--try-these-test () (setq called t)))
-            (i/try-these (error "aa")
-                       (progn (i/--try-these-test)
+          (flet ((imakado---try-these-test () (setq called t)))
+            (imakado-try-these (error "aa")
+                       (progn (imakado---try-these-test)
                               "ok")
                        "bb")
             called)))
@@ -2980,7 +2989,7 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 
 
 ;;;; singularize, Pluralize
-(i/defcacheable i/plural-rules ()
+(imakado-defcacheable imakado-plural-rules ()
   '(("atlas$" "atlases")
     ("beef$" "beefs")
     ("brother$" "brothers")
@@ -3121,7 +3130,7 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
     ("$" "s"))
   )
 
-(i/defcacheable i/singular-rules ()
+(imakado-defcacheable imakado-singular-rules ()
   '(("atlases$" "atlas")
     ("beefs$" "beef")
     ("brothers$" "brother")
@@ -3274,20 +3283,20 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
     ("$" ""))
   )
 
-(defun i/pluralize (str)
+(defun imakado-pluralize (str)
   "Pluralize str"
   (interactive)
   (let ((result str))
-    (loop for (from to)  in (i/plural-rules) do
+    (loop for (from to)  in (imakado-plural-rules) do
           (unless (not (string-match from str))
             (setq result (replace-match to nil nil str))
             (return result)))))
 
-(defun i/singularize (str)
+(defun imakado-singularize (str)
   "Singularize str"
   (interactive)
   (let ((result str))
-    (loop for (plural-re sing-re) in (i/singular-rules) do
+    (loop for (plural-re sing-re) in (imakado-singular-rules) do
           (unless (not (string-match plural-re str))
             (setq result (replace-match sing-re nil nil str))
             (return result)))))
@@ -3295,7 +3304,7 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 
 ;;;; Sort
 ;; (sort
-(defun* i/sort-by-average 
+(defun* imakado-sort-by-average 
     (lon &key (key 'identity) (average nil))
   (let* ((average (or average
                       (/ (loop for n in lon
@@ -3314,11 +3323,11 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
           )))
 
 ;;;; Misc
-(defun* i/show-eol (los &key (temp-buffer-name "*i/temp*"))
-  (i/aand (get-buffer-create temp-buffer-name)
+(defun* imakado-show-eol (los &key (temp-buffer-name "*imakado-temp*"))
+  (imakado-aand (get-buffer-create temp-buffer-name)
         (with-current-buffer it
           (erase-buffer)
-          (i/insert-each-line los)
+          (imakado-insert-each-line los)
           (current-buffer))
         (switch-to-buffer it)))
 
@@ -3329,399 +3338,399 @@ Mandatory parameter :year missing in call to `i/make-$datetime'. year is %s")
 (dont-compile
   (when (fboundp 'expectations)
     (expectations
-      (desc "i/awhen")
+      (desc "imakado-awhen")
       (expect "ya"
-        (i/awhen (or nil "ya")
+        (imakado-awhen (or nil "ya")
           it))
-      (desc "i/awhile")
+      (desc "imakado-awhile")
       (expect '(do you rock me?)
         (let ((l '(do you rock me?))
               (ret nil))
-          (i/awhile (pop l)
+          (imakado-awhile (pop l)
             (push it ret))
           (nreverse ret)))
-      (desc "i/aand")
+      (desc "imakado-aand")
       (expect 3
-        (i/aand (1+ 0)
+        (imakado-aand (1+ 0)
               (1+ it)
               (1+ it)))
-      (desc "i/acond")
+      (desc "imakado-acond")
       (expect "cla1"
         (let ((ret nil))
-          (i/acond
+          (imakado-acond
             (ret (push "ret is non-nil" ret))
             ((progn "cla1") (push it ret))
             (t (push "t" ret)))
           (car ret)))
-      (desc "i/alambda")
+      (desc "imakado-alambda")
       (expect 120
-        (let ((factor (i/alambda (lst)
+        (let ((factor (imakado-alambda (lst)
                         (cond
                          ((null lst) 1)
                          (t (* (car lst) (caller (cdr lst))))))))
           (funcall factor '(1 2 3 4 5))))
 
-      (desc "i/with-struct")
+      (desc "imakado-with-struct")
       (expect 'st-a
-        (defstruct (i/test-struct
-                    (:constructor i/make-test-struct (a b)))
+        (defstruct (imakado-test-struct
+                    (:constructor imakado-make-test-struct (a b)))
           a b)
-        (let ((st (i/make-test-struct 'st-a 'st-b)))
-          (i/with-struct (i/test-struct- a b) st
+        (let ((st (imakado-make-test-struct 'st-a 'st-b)))
+          (imakado-with-struct (imakado-test-struct- a b) st
             a)))
-      (desc "i/with-struct setf")
+      (desc "imakado-with-struct setf")
       (expect 'changed
-        (defstruct (i/test-struct
-                    (:constructor i/make-test-struct (a b)))
+        (defstruct (imakado-test-struct
+                    (:constructor imakado-make-test-struct (a b)))
           a b)
-        (let ((st (i/make-test-struct 'st-a 'st-b)))
-          (i/with-struct (i/test-struct- a b) st
+        (let ((st (imakado-make-test-struct 'st-a 'st-b)))
+          (imakado-with-struct (imakado-test-struct- a b) st
             (setf a 'changed))
-          (i/with-struct (i/test-struct- a) st
+          (imakado-with-struct (imakado-test-struct- a) st
             a)))
 
-      (desc "i/define-with-all-slots-struct")
+      (desc "imakado-define-with-all-slots-struct")
       (expect '(st-a st-b)
         (progn
-          (defstruct (i/test-struct
-                      (:constructor i/make-test-struct (a b)))
+          (defstruct (imakado-test-struct
+                      (:constructor imakado-make-test-struct (a b)))
             a b)
-          (i/define-with-all-slots-struct i/with-all-slots-test-struct i/test-struct-)
-          (let ((st (i/make-test-struct 'st-a 'st-b)))
-            (i/with-all-slots-test-struct st
+          (imakado-define-with-all-slots-struct imakado-with-all-slots-test-struct imakado-test-struct-)
+          (let ((st (imakado-make-test-struct 'st-a 'st-b)))
+            (imakado-with-all-slots-test-struct st
               (list a b)))))
-      (desc "i/define-with-all-slots-struct setf")
+      (desc "imakado-define-with-all-slots-struct setf")
       (expect '(aa bb)
         (progn
-          (defstruct (i/test-struct
-                      (:constructor i/make-test-struct (a b)))
+          (defstruct (imakado-test-struct
+                      (:constructor imakado-make-test-struct (a b)))
             a b)
-          (i/define-with-all-slots-struct i/with-all-slots-test-struct i/test-struct-)
-          (let ((st (i/make-test-struct 'st-a 'st-b)))
-            (i/with-all-slots-test-struct st
+          (imakado-define-with-all-slots-struct imakado-with-all-slots-test-struct imakado-test-struct-)
+          (let ((st (imakado-make-test-struct 'st-a 'st-b)))
+            (imakado-with-all-slots-test-struct st
               (setq a 'aa
                     b 'bb)
               (list a b)))))
 
-      (desc "i/with-lexical-bindings")
+      (desc "imakado-with-lexical-bindings")
       (expect '(var-a var-b changed)
         (let ((funcs (let ((a 'var-a)
                            (b 'var-b)
                            (c 'var-c))
-                       (i/with-lexical-bindings (a b)
+                       (imakado-with-lexical-bindings (a b)
                          (list (lambda () a)
                                (lambda () b)
                                (lambda () c))))))
           (destructuring-bind (a b c) '(changed changed changed)
             (mapcar 'funcall funcs))))
 
-      (desc "i/define-with-struct-macro")
+      (desc "imakado-define-with-struct-macro")
       (expect 'st-a
-        (defstruct (i/test-struct
-                    (:constructor i/make-test-struct (a b)))
+        (defstruct (imakado-test-struct
+                    (:constructor imakado-make-test-struct (a b)))
           a b)
-        (i/define-with-struct-macro i/with-test-struct i/test-struct-)
-        (let ((st (i/make-test-struct 'st-a 'st-b)))
-          (i/with-test-struct (a) st
+        (imakado-define-with-struct-macro imakado-with-test-struct imakado-test-struct-)
+        (let ((st (imakado-make-test-struct 'st-a 'st-b)))
+          (imakado-with-test-struct (a) st
             a)))
 
-      (desc "i/case-regexp-aux")
-      (expect '(((i/=~ "aa" expr) (i/with-anaphoric-match-utilities expr "match aa")) ((i/=~ "bb" expr) (i/with-anaphoric-match-utilities expr "match bb")))
-        (i/case-regexp-aux 'expr '(("aa" "match aa") ("bb" "match bb"))))
+      (desc "imakado-case-regexp-aux")
+      (expect '(((imakado-=~ "aa" expr) (imakado-with-anaphoric-match-utilities expr "match aa")) ((imakado-=~ "bb" expr) (imakado-with-anaphoric-match-utilities expr "match bb")))
+        (imakado-case-regexp-aux 'expr '(("aa" "match aa") ("bb" "match bb"))))
 
       (expect '((t nil))
-        (i/case-regexp-aux 'expr '( (t) )))
+        (imakado-case-regexp-aux 'expr '( (t) )))
 
-      (desc "i/case-regexp")
+      (desc "imakado-case-regexp")
       (expect "match huga"
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ("^huga" (progn (message "%s" "match!!")
                           "match huga"))
           (t "otherwise")))
       (expect nil
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ("huga" nil)
           (t "otherwise")))
       (expect nil
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ("never match"
            (progn (message "%s" "match!!")
                   "match"))
           (t nil)))
       (expect nil
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ("never match" (progn (message "%s" "match!!")
                                 "match"))
           (t )))
       (expect nil
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ("never match" (progn (message "%s" "match!!")
                                 "match"))
           (otherwise nil)))
       (expect "huga"
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ("^huga" $0)
           (t "otherwise")))
 
       (expect  "match huga"
-        (i/case-regexp (concat "hu" "ga")
+        (imakado-case-regexp (concat "hu" "ga")
           ((rx "huga") "match huga")
           (t "otherwise")))
 
-      (desc "i/define-define-keymap")
-      (expect 'i/test-command
-        (let ((i/test-keymap (make-sparse-keymap)))
-          (flet ((i/test-command (&rest args) (interactive) (apply 'identity args)))
-            (i/define-define-keymap i/define-key-test-keymap i/test-keymap)
-            (i/define-key-test-keymap "<return>" 'i/test-command)
-            (lookup-key i/test-keymap (kbd "<return>")))))
+      (desc "imakado-define-define-keymap")
+      (expect 'imakado-test-command
+        (let ((imakado-test-keymap (make-sparse-keymap)))
+          (flet ((imakado-test-command (&rest args) (interactive) (apply 'identity args)))
+            (imakado-define-define-keymap imakado-define-key-test-keymap imakado-test-keymap)
+            (imakado-define-key-test-keymap "<return>" 'imakado-test-command)
+            (lookup-key imakado-test-keymap (kbd "<return>")))))
 
-      (expect 'i/test-command
-        (let ((i/test-keymap (make-sparse-keymap)))
-          (flet ((i/test-command (&rest args) (interactive) (apply 'identity args)))
-            (i/define-define-keymap i/define-key-test-keymap i/test-keymap)
-            (i/define-key-test-keymap [f1] 'i/test-command)
-            (lookup-key i/test-keymap [f1]))))
+      (expect 'imakado-test-command
+        (let ((imakado-test-keymap (make-sparse-keymap)))
+          (flet ((imakado-test-command (&rest args) (interactive) (apply 'identity args)))
+            (imakado-define-define-keymap imakado-define-key-test-keymap imakado-test-keymap)
+            (imakado-define-key-test-keymap [f1] 'imakado-test-command)
+            (lookup-key imakado-test-keymap [f1]))))
 
-      (expect 'i/test-command
-        (let ((i/test-keymap (make-sparse-keymap)))
-          (flet ((i/test-command (&rest args) (interactive) (apply 'identity args)))
-            (i/define-define-keymap i/define-key-test-keymap i/test-keymap)
-            (i/define-key-test-keymap (progn nil "C-c a") (progn "ignore" 'i/test-command))
-            (lookup-key i/test-keymap (progn nil "C-c a")))))
+      (expect 'imakado-test-command
+        (let ((imakado-test-keymap (make-sparse-keymap)))
+          (flet ((imakado-test-command (&rest args) (interactive) (apply 'identity args)))
+            (imakado-define-define-keymap imakado-define-key-test-keymap imakado-test-keymap)
+            (imakado-define-key-test-keymap (progn nil "C-c a") (progn "ignore" 'imakado-test-command))
+            (lookup-key imakado-test-keymap (progn nil "C-c a")))))
 
-      (expect 'i/test-command
-        (let ((i/test-keymap (make-sparse-keymap)))
-          (flet ((i/test-command (&rest args) (interactive) (apply 'identity args)))
-            (i/define-define-keymap i/define-key-test-keymap i/test-keymap :doc "define i/test-keymap key")
-            (i/define-key-test-keymap "<return>" 'i/test-command)
-            (lookup-key i/test-keymap (kbd "<return>")))))
+      (expect 'imakado-test-command
+        (let ((imakado-test-keymap (make-sparse-keymap)))
+          (flet ((imakado-test-command (&rest args) (interactive) (apply 'identity args)))
+            (imakado-define-define-keymap imakado-define-key-test-keymap imakado-test-keymap :doc "define imakado-test-keymap key")
+            (imakado-define-key-test-keymap "<return>" 'imakado-test-command)
+            (lookup-key imakado-test-keymap (kbd "<return>")))))
 
-      (desc "i/dolist-with-progress-reporter")
+      (desc "imakado-dolist-with-progress-reporter")
       (expect (regexp "[[:digit:]][[:digit:]]%")
         (flet ((message (&rest args) (print (apply 'format args))))
           (with-output-to-string
-            (i/dolist-with-progress-reporter (v (number-sequence 0 5)) "msg: " nil 0.1
+            (imakado-dolist-with-progress-reporter (v (number-sequence 0 5)) "msg: " nil 0.1
               (sit-for 0.1)))))
       (expect '(1 2 3)
         (let (ret)
-          (i/dolist-with-progress-reporter (n '(1 2 3) (nreverse ret)) "" nil nil
+          (imakado-dolist-with-progress-reporter (n '(1 2 3) (nreverse ret)) "" nil nil
             (push n ret))))
-      (desc "i/cond-let")
+      (desc "imakado-cond-let")
       (expect "cd(d c nil)"
         (with-output-to-string
-          (i/cond-let (((= 1 2) (x (princ 'a)) (y (princ 'b)))
+          (imakado-cond-let (((= 1 2) (x (princ 'a)) (y (princ 'b)))
                      ((= 1 1) (y (princ 'c)) (x (princ 'd)))
                      (t       (x (princ 'e)) (z (princ 'f))))
             (princ (list x y z)))))
       (expect 'aa
-        (i/cond-let ((t (a 'aa)))
+        (imakado-cond-let ((t (a 'aa)))
           a))
 
-      (desc "i/when-let")
+      (desc "imakado-when-let")
       (expect 'foo
-        (i/when-let (var 'foo)
+        (imakado-when-let (var 'foo)
           var))
       (expect nil
-        (i/when-let (var (progn nil))
+        (imakado-when-let (var (progn nil))
           (progn 'foo)))
 
-      (desc "i/in")
+      (desc "imakado-in")
       (expect '(t nil)
         (let (var)
           (flet ((op () 'two))
-            (list (i/in (op) 'one 'two (prog1 'three (setq var 'called)))
+            (list (imakado-in (op) 'one 'two (prog1 'three (setq var 'called)))
                   var))))
 
-      (desc "i/group")
+      (desc "imakado-group")
       (expect '((1 2) (3 4))
-        (i/group '(1 2 3 4) 2))
+        (imakado-group '(1 2 3 4) 2))
       (expect '((1 2) (3))
-        (i/group '(1 2 3) 2))
+        (imakado-group '(1 2 3) 2))
       (expect (error)
-        (i/group '(1 2 3) 2 :error-check t))
+        (imakado-group '(1 2 3) 2 :error-check t))
       (expect '((1))
-        (i/group '(1) 2))
+        (imakado-group '(1) 2))
       (expect (error)
-        (i/group '(1) 2 :error-check t))
+        (imakado-group '(1) 2 :error-check t))
 
 
-      (desc "i/define-macro-alias")
+      (desc "imakado-define-macro-alias")
       (expect 'alias
-        (defmacro i/test-macro (arg)
-          (i/with-gensyms (a)
+        (defmacro imakado-test-macro (arg)
+          (imakado-with-gensyms (a)
             `(let ((,a ,arg))
                ,a)))
-        (i/define-macro-alias i/test-macro-alias i/test-macro)
-        (i/test-macro-alias 'alias))
+        (imakado-define-macro-alias imakado-test-macro-alias imakado-test-macro)
+        (imakado-test-macro-alias 'alias))
 
-      (desc "i/in")
+      (desc "imakado-in")
       (expect '(t nil)
         (let (called)
           (let ((op 'otherwise))
             (list
-             (i/in op 't 'otherwise (prog1 'ya (setq called t)))
+             (imakado-in op 't 'otherwise (prog1 'ya (setq called t)))
              called))))
-      (desc "i/inq")
+      (desc "imakado-inq")
       (expect t
         (let ((op 'otherwise))
-          (i/inq op t otherwise ya)))
+          (imakado-inq op t otherwise ya)))
 
-      (desc "i/xcase")
+      (desc "imakado-xcase")
       (expect '(first t nil)
         (let (called called2)
           (list
-           (i/xcase 'key
+           (imakado-xcase 'key
              (((prog1 'key (setq called t))) 'first)
              ((prog1 'ya (setq called2 t)) 'second))
            called called2)))
 
-      (desc "i/in")
+      (desc "imakado-in")
       (expect t
-        (i/in (prog1 'apple "apple") "banana" "apple" "pine" 'apple))
+        (imakado-in (prog1 'apple "apple") "banana" "apple" "pine" 'apple))
       (expect nil
-        (i/in (progn 'ignore "apple") "banana" "apple" "pine"))
-      (desc "i/in=")
+        (imakado-in (progn 'ignore "apple") "banana" "apple" "pine"))
+      (desc "imakado-in=")
       (expect t
-        (i/in= (progn 'ignore "apple") "banana" "apple" "pine"))
+        (imakado-in= (progn 'ignore "apple") "banana" "apple" "pine"))
       (expect t
-        (i/in= (progn 'ignore 'apple) "banana" "apple" "pine" (prog1 'apple 'ignore)))
+        (imakado-in= (progn 'ignore 'apple) "banana" "apple" "pine" (prog1 'apple 'ignore)))
 
-      (desc "i/join+")
+      (desc "imakado-join+")
       (expect "oh my god"
-        (i/join+ (list "oh" "my" "god") (prog1 " " 'ignore)))
+        (imakado-join+ (list "oh" "my" "god") (prog1 " " 'ignore)))
 
 
-      (desc "i/flatten")
+      (desc "imakado-flatten")
       (expect '(a b c d e)
-        (i/flatten '(a (b (c d)) e)))
+        (imakado-flatten '(a (b (c d)) e)))
 
-      (desc "i/subseq")
+      (desc "imakado-subseq")
       (expect '(3 4 5 6 7)
-        (i/subseq (number-sequence 0 10) 3 8))
+        (imakado-subseq (number-sequence 0 10) 3 8))
 
-      (desc "i/remove-if")
+      (desc "imakado-remove-if")
       (expect '(0 2 4 6 8 10)
-        (i/remove-if 'oddp (number-sequence 0 10)))
-      (desc "i/remove-if-not")
+        (imakado-remove-if 'oddp (number-sequence 0 10)))
+      (desc "imakado-remove-if-not")
       (expect '(1 3 5 7 9)
-        (i/remove-if-not 'oddp (number-sequence 0 10)))
+        (imakado-remove-if-not 'oddp (number-sequence 0 10)))
 
-      (desc "i/fn")
+      (desc "imakado-fn")
       (expect '(3 2 1)
         (sort (list 1 2 3)
-              (i/fn (_ b) (> _ b))))
+              (imakado-fn (_ b) (> _ b))))
       (expect '(3 2 1)
         (sort (list 1 2 3)
-              (i/fn (> _1 _2))))
+              (imakado-fn (> _1 _2))))
       (expect '(0 1 2 3)
-        (i/remove-if (i/fn (_) (> _ 3)) (number-sequence 0 10)))
+        (imakado-remove-if (imakado-fn (_) (> _ 3)) (number-sequence 0 10)))
       (expect '(0 1 2 3)
-        (i/remove-if (i/fn (> _ 3)) (number-sequence 0 10)))
+        (imakado-remove-if (imakado-fn (> _ 3)) (number-sequence 0 10)))
       (expect '(1 3)
-        (apply (i/fn (list _1 _3)) '(1 2 3)))
+        (apply (imakado-fn (list _1 _3)) '(1 2 3)))
 
       (expect t
-        (funcall (i/fn (= 1 (length _)))
+        (funcall (imakado-fn (= 1 (length _)))
                  (list 'a)))
-      (desc "i/fn error")
+      (desc "imakado-fn error")
       (expect "cant use \"_\" and \"(_1 _2 ...)\" at the same time!!"
         (condition-case err
-            (i/fn (list _ _1 _2))
+            (imakado-fn (list _ _1 _2))
           (error "%s" (error-message-string err))))
 
-      (desc "i/fn cant use both _<n> and _")
+      (desc "imakado-fn cant use both _<n> and _")
       (expect (error)
         (sort (list 1 2 3)
-              (i/fn (< _1 _))))
+              (imakado-fn (< _1 _))))
 
-      (desc "i/fn _0 is bound to arglist")
+      (desc "imakado-fn _0 is bound to arglist")
       (expect '(a b (a b))
-        (apply (i/fn (list _1
+        (apply (imakado-fn (list _1
                          _2
                          _0))
                '(a b)))
 
-      (desc "i/cars")
+      (desc "imakado-cars")
       (expect '("a" "c")
-        (i/cars '( ("a" . "b") ("c" . "d"))))
-      (desc "i/cdrs")
+        (imakado-cars '( ("a" . "b") ("c" . "d"))))
+      (desc "imakado-cdrs")
       (expect '("b" "d")
-        (i/cdrs '( ("a" . "b") ("c" . "d"))))
+        (imakado-cdrs '( ("a" . "b") ("c" . "d"))))
 
-      (desc "i/match-with-temp-buffer")
+      (desc "imakado-match-with-temp-buffer")
       (expect '("string" "string" "string")
-        (i/match-with-temp-buffer ((rx "string") "string string string" )
+        (imakado-match-with-temp-buffer ((rx "string") "string string string" )
           $m))
       (expect "string string string"
-        (i/match-with-temp-buffer ((rx "ing") "string string string" (buffer-string))
+        (imakado-match-with-temp-buffer ((rx "ing") "string string string" (buffer-string))
           $m))
       (expect "  "
-        (i/match-with-temp-buffer ((rx "string") "string string string" (buffer-string))
+        (imakado-match-with-temp-buffer ((rx "string") "string string string" (buffer-string))
           ($sub "")))
 
-      (desc "i/remif")
+      (desc "imakado-remif")
       (expect '("a" "b")
-        (i/remif (i/fn (i/=~ (rx bol ".") _))
+        (imakado-remif (imakado-fn (imakado-=~ (rx bol ".") _))
                (list "a" "b" ".hoge")))
       (expect '("a" "b")
-        (i/remif (i/fn (i/=~ (rx bol ".") _))
+        (imakado-remif (imakado-fn (imakado-=~ (rx bol ".") _))
                (list "a" "b" ".hoge")
                :key 'identity))
       (expect '("a" "b")
-        (i/remif (i/fn (i/=~ (rx bol ".") _))
+        (imakado-remif (imakado-fn (imakado-=~ (rx bol ".") _))
                (list "a" "b" ".hoge")
-               :key (i/fn (a) a)))
+               :key (imakado-fn (a) a)))
 
-      (desc "i/!remif")
+      (desc "imakado-!remif")
       (expect '((1 . "huga"))
-        (i/!remif (i/fn (i/=~ "huga" _))
+        (imakado-!remif (imakado-fn (imakado-=~ "huga" _))
                 '( (1 . "huga")
                    (2 . "hoge")
                    (3 . "piyo") )
                 :key 'cdr))
       (expect '(".hoge")
-        (i/!remif (i/fn (i/=~ (rx bol ".") _))
+        (imakado-!remif (imakado-fn (imakado-=~ (rx bol ".") _))
                 (list "a" "b" ".hoge")))
       (expect '(".hoge")
-        (i/!remif (i/fn (i/=~ (rx bol ".") _))
+        (imakado-!remif (imakado-fn (imakado-=~ (rx bol ".") _))
                 (list "a" "b" ".hoge")
                 :key 'identity))
       (expect '(".hoge")
-        (i/!remif (i/fn (i/=~ (rx bol ".") _))
+        (imakado-!remif (imakado-fn (imakado-=~ (rx bol ".") _))
                 (list "a" "b" ".hoge")
-                :key (i/fn (a) a)))
+                :key (imakado-fn (a) a)))
 
       (desc "cadr")
       (expect '("2" "4")
-        (i/cadrs '( ("1" "2") ("3"  "4"))))
+        (imakado-cadrs '( ("1" "2") ("3"  "4"))))
 
-      (desc "i/with-point-buffer")
+      (desc "imakado-with-point-buffer")
       (expect '("a" "b")
-        (i/with-point-buffer "aaa`!!'bbb"
+        (imakado-with-point-buffer "aaa`!!'bbb"
           (list
            (char-to-string (preceding-char))
            (char-to-string (following-char)))))
 
-      (desc "i/assoc-cdrs")
+      (desc "imakado-assoc-cdrs")
       (expect '("kval" "vval")
-        (i/assoc-cdrs '("k" "v")
+        (imakado-assoc-cdrs '("k" "v")
                     '(("k" . "kval")
                       ("v" . "vval"))))
       (expect '("kval" "vval")
-        (i/assoc-cdrs '( k v )
+        (imakado-assoc-cdrs '( k v )
                     '((k . "kval")
                       (v . "vval"))))
       (expect '("kval" "vval" "def")
-        (i/assoc-cdrs '( k v default)
+        (imakado-assoc-cdrs '( k v default)
                     '((k . "kval")
                       default
                       (v . "vval"))
                     'eq
                     "def"))
-      (desc "i/nths")
+      (desc "imakado-nths")
       (expect '(2 2 2)
-        (i/nths 2
+        (imakado-nths 2
               (list (number-sequence 0 10)
                     (number-sequence 0 10)
                     (number-sequence 0 10))))
